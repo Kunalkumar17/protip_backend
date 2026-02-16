@@ -1,297 +1,270 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tip Alert</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tip Alert</title>
 
-    body {
-      margin: 0;
-      background: transparent;
-      overflow: hidden;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-    #alert-container {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) scale(0);
-      opacity: 0;
-      transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-      display: none;
-    }
+body {
+  margin: 0;
+  background: transparent;
+  overflow: hidden;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
 
-    #alert-container.show {
-      display: block;
-      transform: translate(-50%, -50%) scale(1);
-      opacity: 1;
-    }
+#alert-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  transition: all 0.5s cubic-bezier(0.68,-0.55,0.265,1.55);
+  display: none;
+}
 
-    #alert-container.hide {
-      transform: translate(-50%, -50%) scale(0);
-      opacity: 0;
-    }
+#alert-container.show {
+  display: block;
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+}
 
-    .alert-box {
-      background: linear-gradient(135deg, #ff6b9d 0%, #c44569 50%, #8b5cf6 100%);
-      padding: 40px 60px;
-      border-radius: 30px;
-      box-shadow: 0 20px 60px rgba(255, 107, 157, 0.5);
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-      border: 4px solid rgba(255, 255, 255, 0.3);
-      backdrop-filter: blur(10px);
-    }
+#alert-container.hide {
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+}
 
-    .sparkle {
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      background: white;
-      clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-      opacity: 0;
-      animation: sparkleFloat 2s ease-out forwards;
-    }
+.alert-box {
+  background: linear-gradient(135deg,#ff6b9d,#c44569,#8b5cf6);
+  padding: 40px 60px;
+  border-radius: 30px;
+  box-shadow: 0 20px 60px rgba(255,107,157,0.5);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  border: 4px solid rgba(255,255,255,0.3);
+  backdrop-filter: blur(10px);
+}
 
-    @keyframes sparkleFloat {
-      0% {
-        opacity: 0;
-        transform: translateY(0) rotate(0deg);
-      }
-      50% {
-        opacity: 1;
-      }
-      100% {
-        opacity: 0;
-        transform: translateY(-100px) rotate(180deg);
-      }
-    }
+.berry-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 20px;
+  background: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 50px;
+  animation: heartBeat 1s infinite;
+}
 
-    .berry-icon {
-      width: 80px;
-      height: 80px;
-      margin: 0 auto 20px;
-      background: white;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 50px;
-      animation: heartBeat 1s ease-in-out infinite;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-    }
+@keyframes heartBeat {
+  0%,100%{ transform:scale(1); }
+  50%{ transform:scale(1.1); }
+}
 
-    @keyframes heartBeat {
-      0%, 100% {
-        transform: scale(1);
-      }
-      50% {
-        transform: scale(1.1);
-      }
-    }
+.alert-title {
+  color:white;
+  font-size:36px;
+  font-weight:bold;
+  margin-bottom:15px;
+}
 
-    .alert-title {
-      color: white;
-      font-size: 36px;
-      font-weight: bold;
-      margin-bottom: 15px;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-      letter-spacing: 1px;
-    }
+.tipper-name {
+  color:#fffae6;
+  font-size:28px;
+  font-weight:600;
+}
 
-    .tipper-name {
-      color: #fffae6;
-      font-size: 28px;
-      font-weight: 600;
-      margin-bottom: 10px;
-      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
-    }
+.tip-amount {
+  color:#ffeb3b;
+  font-size:56px;
+  font-weight:bold;
+  margin:20px 0;
+  animation:amountPulse 1.5s infinite;
+}
 
-    .tip-amount {
-      color: #ffeb3b;
-      font-size: 56px;
-      font-weight: bold;
-      margin: 20px 0;
-      text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.4);
-      animation: amountPulse 1.5s ease-in-out infinite;
-    }
+@keyframes amountPulse {
+  0%,100%{ transform:scale(1); }
+  50%{ transform:scale(1.05); }
+}
 
-    @keyframes amountPulse {
-      0%, 100% {
-        transform: scale(1);
-      }
-      50% {
-        transform: scale(1.05);
-      }
-    }
+.tip-message {
+  color:white;
+  font-size:22px;
+  margin-top:15px;
+  padding:15px;
+  background:rgba(255,255,255,0.2);
+  border-radius:15px;
+  max-width:500px;
+  white-space:pre-wrap;
+}
 
-    .tip-message {
-      color: white;
-      font-size: 22px;
-      font-style: italic;
-      margin-top: 15px;
-      padding: 15px;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 15px;
-      backdrop-filter: blur(10px);
-      max-width: 500px;
-      line-height: 1.4;
-      white-space: pre-wrap;
-    }
+.sparkle,
+.confetti {
+  position:absolute;
+  opacity:0;
+}
 
-    .confetti {
-      position: absolute;
-      width: 10px;
-      height: 10px;
-      background: #ffeb3b;
-      opacity: 0;
-      animation: confettiFall 3s ease-out forwards;
-    }
+.sparkle {
+  width:20px;
+  height:20px;
+  background:white;
+  clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
+  animation:sparkleFloat 2s forwards;
+}
 
-    @keyframes confettiFall {
-      0% {
-        opacity: 1;
-        transform: translateY(-50px) rotate(0deg);
-      }
-      100% {
-        opacity: 0;
-        transform: translateY(600px) rotate(720deg);
-      }
-    }
-  </style>
+@keyframes sparkleFloat {
+  0%{opacity:0;transform:translateY(0);}
+  50%{opacity:1;}
+  100%{opacity:0;transform:translateY(-100px);}
+}
+
+.confetti {
+  width:10px;
+  height:10px;
+  animation:confettiFall 3s forwards;
+}
+
+@keyframes confettiFall {
+  0%{opacity:1;transform:translateY(-50px);}
+  100%{opacity:0;transform:translateY(600px) rotate(720deg);}
+}
+</style>
 </head>
+
 <body>
-  <div id="alert-container">
-    <div class="alert-box">
-      <div class="berry-icon" id="berry-icon">🍓</div>
-      <div class="alert-content">
-        <div class="alert-title">NEW TIP!</div>
-        <div class="tipper-info">
-          <div class="tipper-name" id="tipper-name">Anonymous</div>
-          <div class="tip-amount" id="tip-amount">₹0.00</div>
-        </div>
-        <div class="tip-message" id="tip-message"></div>
-      </div>
-    </div>
+
+<div id="alert-container">
+  <div class="alert-box">
+    <div class="berry-icon">🍓</div>
+    <div class="alert-title">NEW TIP!</div>
+    <div class="tipper-name" id="tipper-name">Anonymous</div>
+    <div class="tip-amount" id="tip-amount">₹0.00</div>
+    <div class="tip-message" id="tip-message"></div>
   </div>
+</div>
 
-  <script>
-    let isPlaying = false;
-    const alertQueue = [];
+<script>
+/* ===============================
+   ALERT DISPLAY SYSTEM
+================================ */
 
-    function createSparkles() {
-      const container = document.querySelector('.alert-box');
-      for (let i = 0; i < 15; i++) {
-        const sparkle = document.createElement('div');
-        sparkle.className = 'sparkle';
-        sparkle.style.left = Math.random() * 100 + '%';
-        sparkle.style.animationDelay = Math.random() * 0.5 + 's';
-        container.appendChild(sparkle);
-        
-        setTimeout(() => sparkle.remove(), 2000);
-      }
-    }
+let isPlaying = false;
+const alertQueue = [];
 
-    function createConfetti() {
-      const colors = ['#ffeb3b', '#ff6b9d', '#8b5cf6', '#4ade80', '#60a5fa'];
-      const body = document.body;
-      
-      for (let i = 0; i < 30; i++) {
-        const confetti = document.createElement('div');
-        confetti.className = 'confetti';
-        confetti.style.left = Math.random() * 100 + '%';
-        confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
-        confetti.style.animationDelay = Math.random() * 0.5 + 's';
-        confetti.style.width = (Math.random() * 10 + 5) + 'px';
-        confetti.style.height = (Math.random() * 10 + 5) + 'px';
-        body.appendChild(confetti);
-        
-        setTimeout(() => confetti.remove(), 3000);
-      }
-    }
+function createSparkles(){
+  const container = document.querySelector(".alert-box");
+  for(let i=0;i<15;i++){
+    const s=document.createElement("div");
+    s.className="sparkle";
+    s.style.left=Math.random()*100+"%";
+    container.appendChild(s);
+    setTimeout(()=>s.remove(),2000);
+  }
+}
 
-    function processQueue() {
-      if (alertQueue.length === 0 || isPlaying) return;
-      
-      const tipData = alertQueue.shift();
-      showAlertNow(tipData);
-    }
+function createConfetti(){
+  const colors=["#ffeb3b","#ff6b9d","#8b5cf6","#4ade80","#60a5fa"];
+  for(let i=0;i<30;i++){
+    const c=document.createElement("div");
+    c.className="confetti";
+    c.style.left=Math.random()*100+"%";
+    c.style.background=colors[Math.floor(Math.random()*colors.length)];
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),3000);
+  }
+}
 
-    function showAlertNow(tipData) {
-      isPlaying = true;
+function processQueue(){
+  if(isPlaying || alertQueue.length===0) return;
+  showAlertNow(alertQueue.shift());
+}
 
-      const container = document.getElementById('alert-container');
-      const berryIcon = document.getElementById('berry-icon');
-      const nameEl = document.getElementById('tipper-name');
-      const amountEl = document.getElementById('tip-amount');
-      const messageEl = document.getElementById('tip-message');
+function showAlertNow(tip){
+  isPlaying=true;
 
-      const amount = parseFloat(tipData.amount);
+  document.getElementById("tipper-name").textContent =
+    tip.user || tip.name || "Anonymous";
 
-      // Determine which berry to show based on amount
-        berryIcon.textContent = '🍓'; // Strawberry
+  document.getElementById("tip-amount").textContent =
+    "₹" + Number(tip.amount || 0).toFixed(2);
 
-      nameEl.textContent = tipData.user || tipData.name || 'Anonymous';
-      amountEl.textContent = '₹' + amount.toFixed(2);
-      
-      if (tipData.message && tipData.message.trim() !== '' && tipData.message !== '💝') {
-        messageEl.textContent = '"' + tipData.message + '"';
-        messageEl.style.display = 'block';
-      } else {
-        messageEl.style.display = 'none';
-      }
+  const msg=document.getElementById("tip-message");
+  if(tip.message){
+    msg.textContent='"'+tip.message+'"';
+    msg.style.display="block";
+  } else msg.style.display="none";
 
-      container.classList.add('show');
-      createSparkles();
-      createConfetti();
+  const container=document.getElementById("alert-container");
+  container.classList.add("show");
 
-      setTimeout(() => {
-        container.classList.remove('show');
-        container.classList.add('hide');
-        setTimeout(() => {
-          container.classList.remove('hide');
-          container.style.display = 'none';
-          isPlaying = false;
-          processQueue(); // Process next alert in queue
-        }, 500);
-      }, 5000);
-    }
+  createSparkles();
+  createConfetti();
 
-    function showAlert(tipData) {
-      alertQueue.push(tipData);
+  setTimeout(()=>{
+    container.classList.remove("show");
+    container.classList.add("hide");
+
+    setTimeout(()=>{
+      container.classList.remove("hide");
+      container.style.display="none";
+      isPlaying=false;
       processQueue();
-    }
+    },500);
+  },5000);
+}
 
-    // Connect to WebSocket
-    const socket = new WebSocket("ws://localhost:8080");
+function showAlert(tip){
+  alertQueue.push(tip);
+  processQueue();
+}
 
-    socket.onopen = () => {
-      console.log("Connected to backend WebSocket");
-    };
+/* ===============================
+   WEBSOCKET CONNECTION
+================================ */
 
-    socket.onmessage = (event) => {
+function connectWS(){
+
+  const wsUrl =
+    (location.protocol==="https:"?"wss://":"ws://") + location.host;
+
+  console.log("Connecting to:", wsUrl);
+
+  const socket = new WebSocket(wsUrl);
+
+  socket.onopen = () => {
+    console.log("WebSocket connected");
+  };
+
+  socket.onmessage = (event) => {
+    try{
       const data = JSON.parse(event.data);
       showAlert(data);
-    };
+    }catch(e){
+      console.error("Invalid message",e);
+    }
+  };
 
-    socket.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
+  socket.onerror = (err) => {
+    console.error("WebSocket error",err);
+  };
 
-    socket.onclose = () => {
-      console.log("WebSocket connection closed. Reconnecting...");
-      setTimeout(() => {
-        location.reload();
-      }, 3000);
-    };
-  </script>
+  socket.onclose = () => {
+    console.log("Disconnected. Reconnecting in 3s...");
+    setTimeout(connectWS,3000);
+  };
+}
+
+connectWS();
+</script>
+
 </body>
 </html>
