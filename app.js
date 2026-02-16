@@ -21,13 +21,13 @@ app.use(cors({
 
 app.use("/donations", donationsRoutes);
 
-// ✅ create HTTP server
+// create HTTP server
 const server = http.createServer(app);
 
-// ✅ attach websocket
+// attach websocket
 initWebSocket(server);
 
-// ✅ start server
+// start server
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     server.listen(port, () => {

@@ -6,136 +6,65 @@
 <title>Tip Alert</title>
 
 <style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+*{margin:0;padding:0;box-sizing:border-box}
+
+body{
+  background:transparent;
+  overflow:hidden;
+  font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;
 }
 
-body {
-  margin: 0;
-  background: transparent;
-  overflow: hidden;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-#alert-container {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) scale(0);
-  opacity: 0;
-  transition: all 0.5s cubic-bezier(0.68,-0.55,0.265,1.55);
-  display: none;
-}
-
-#alert-container.show {
-  display: block;
-  transform: translate(-50%, -50%) scale(1);
-  opacity: 1;
-}
-
-#alert-container.hide {
-  transform: translate(-50%, -50%) scale(0);
-  opacity: 0;
-}
-
-.alert-box {
-  background: linear-gradient(135deg,#ff6b9d,#c44569,#8b5cf6);
-  padding: 40px 60px;
-  border-radius: 30px;
-  box-shadow: 0 20px 60px rgba(255,107,157,0.5);
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-  border: 4px solid rgba(255,255,255,0.3);
-  backdrop-filter: blur(10px);
-}
-
-.berry-icon {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto 20px;
-  background: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 50px;
-  animation: heartBeat 1s infinite;
-}
-
-@keyframes heartBeat {
-  0%,100%{ transform:scale(1); }
-  50%{ transform:scale(1.1); }
-}
-
-.alert-title {
-  color:white;
-  font-size:36px;
-  font-weight:bold;
-  margin-bottom:15px;
-}
-
-.tipper-name {
-  color:#fffae6;
-  font-size:28px;
-  font-weight:600;
-}
-
-.tip-amount {
-  color:#ffeb3b;
-  font-size:56px;
-  font-weight:bold;
-  margin:20px 0;
-  animation:amountPulse 1.5s infinite;
-}
-
-@keyframes amountPulse {
-  0%,100%{ transform:scale(1); }
-  50%{ transform:scale(1.05); }
-}
-
-.tip-message {
-  color:white;
-  font-size:22px;
-  margin-top:15px;
-  padding:15px;
-  background:rgba(255,255,255,0.2);
-  border-radius:15px;
-  max-width:500px;
-  white-space:pre-wrap;
-}
-
-.sparkle,
-.confetti {
-  position:absolute;
+#alert-container{
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%) scale(0);
   opacity:0;
+  transition:.5s cubic-bezier(.68,-.55,.265,1.55);
 }
 
-.sparkle {
-  width:20px;
-  height:20px;
-  background:white;
-  clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
-  animation:sparkleFloat 2s forwards;
+#alert-container.show{
+  transform:translate(-50%,-50%) scale(1);
+  opacity:1;
 }
 
-@keyframes sparkleFloat {
-  0%{opacity:0;transform:translateY(0);}
-  50%{opacity:1;}
-  100%{opacity:0;transform:translateY(-100px);}
+.alert-box{
+  background:linear-gradient(135deg,#ff6b9d,#c44569,#8b5cf6);
+  padding:40px 60px;
+  border-radius:30px;
+  box-shadow:0 20px 60px rgba(255,107,157,.5);
+  text-align:center;
+  border:4px solid rgba(255,255,255,.3);
 }
 
-.confetti {
-  width:10px;
-  height:10px;
-  animation:confettiFall 3s forwards;
+.tip-amount{
+  font-size:56px;
+  color:#ffeb3b;
+  margin:20px 0;
 }
 
-@keyframes confettiFall {
-  0%{opacity:1;transform:translateY(-50px);}
-  100%{opacity:0;transform:translateY(600px) rotate(720deg);}
+.sparkle,.confetti{position:absolute}
+
+.sparkle{
+  width:20px;height:20px;background:white;
+  clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
+  animation:sparkle 2s forwards;
+}
+
+@keyframes sparkle{
+  0%{opacity:0}
+  50%{opacity:1}
+  100%{opacity:0;transform:translateY(-100px)}
+}
+
+.confetti{
+  width:10px;height:10px;
+  animation:fall 3s forwards;
+}
+
+@keyframes fall{
+  0%{opacity:1;transform:translateY(-50px)}
+  100%{opacity:0;transform:translateY(600px) rotate(720deg)}
 }
 </style>
 </head>
@@ -144,126 +73,85 @@ body {
 
 <div id="alert-container">
   <div class="alert-box">
-    <div class="berry-icon">🍓</div>
-    <div class="alert-title">NEW TIP!</div>
-    <div class="tipper-name" id="tipper-name">Anonymous</div>
+    <div id="tipper-name">Anonymous</div>
     <div class="tip-amount" id="tip-amount">₹0.00</div>
-    <div class="tip-message" id="tip-message"></div>
+    <div id="tip-message"></div>
   </div>
 </div>
 
 <script>
-/* ===============================
-   ALERT DISPLAY SYSTEM
-================================ */
+let isPlaying=false;
+const queue=[];
 
-let isPlaying = false;
-const alertQueue = [];
-
-function createSparkles(){
-  const container = document.querySelector(".alert-box");
+function sparkles(){
+  const box=document.querySelector(".alert-box");
   for(let i=0;i<15;i++){
     const s=document.createElement("div");
     s.className="sparkle";
     s.style.left=Math.random()*100+"%";
-    container.appendChild(s);
+    box.appendChild(s);
     setTimeout(()=>s.remove(),2000);
   }
 }
 
-function createConfetti(){
-  const colors=["#ffeb3b","#ff6b9d","#8b5cf6","#4ade80","#60a5fa"];
+function confetti(){
+  const colors=["#ffeb3b","#ff6b9d","#8b5cf6"];
   for(let i=0;i<30;i++){
     const c=document.createElement("div");
     c.className="confetti";
     c.style.left=Math.random()*100+"%";
-    c.style.background=colors[Math.floor(Math.random()*colors.length)];
+    c.style.background=colors[Math.floor(Math.random()*3)];
     document.body.appendChild(c);
     setTimeout(()=>c.remove(),3000);
   }
 }
 
-function processQueue(){
-  if(isPlaying || alertQueue.length===0) return;
-  showAlertNow(alertQueue.shift());
-}
-
-function showAlertNow(tip){
+function play(tip){
   isPlaying=true;
 
-  document.getElementById("tipper-name").textContent =
-    tip.user || tip.name || "Anonymous";
+  document.getElementById("tipper-name").textContent=
+    tip.user||tip.name||"Anonymous";
 
-  document.getElementById("tip-amount").textContent =
-    "₹" + Number(tip.amount || 0).toFixed(2);
+  document.getElementById("tip-amount").textContent=
+    "₹"+Number(tip.amount||0).toFixed(2);
 
   const msg=document.getElementById("tip-message");
-  if(tip.message){
-    msg.textContent='"'+tip.message+'"';
-    msg.style.display="block";
-  } else msg.style.display="none";
+  msg.textContent=tip.message?'"'+tip.message+'"':"";
 
-  const container=document.getElementById("alert-container");
-  container.classList.add("show");
+  const el=document.getElementById("alert-container");
+  el.classList.add("show");
 
-  createSparkles();
-  createConfetti();
+  sparkles();
+  confetti();
 
   setTimeout(()=>{
-    container.classList.remove("show");
-    container.classList.add("hide");
-
-    setTimeout(()=>{
-      container.classList.remove("hide");
-      container.style.display="none";
-      isPlaying=false;
-      processQueue();
-    },500);
+    el.classList.remove("show");
+    isPlaying=false;
+    next();
   },5000);
 }
 
+function next(){
+  if(queue.length && !isPlaying) play(queue.shift());
+}
+
 function showAlert(tip){
-  alertQueue.push(tip);
-  processQueue();
+  queue.push(tip);
+  next();
 }
 
-/* ===============================
-   WEBSOCKET CONNECTION
-================================ */
+/* websocket */
 
-function connectWS(){
+function connect(){
+  const ws=new WebSocket(
+    (location.protocol==="https:"?"wss://":"ws://")+location.host
+  );
 
-  const wsUrl =
-    (location.protocol==="https:"?"wss://":"ws://") + location.host;
-
-  console.log("Connecting to:", wsUrl);
-
-  const socket = new WebSocket(wsUrl);
-
-  socket.onopen = () => {
-    console.log("WebSocket connected");
-  };
-
-  socket.onmessage = (event) => {
-    try{
-      const data = JSON.parse(event.data);
-      showAlert(data);
-    }catch(e){
-      console.error("Invalid message",e);
-    }
-  };
-
-  socket.onerror = (err) => {
-    console.error("WebSocket error",err);
-  };
-
-  socket.onclose = () => {
-    console.log("Disconnected. Reconnecting in 3s...");
-    setTimeout(connectWS,3000);
-  };
+  ws.onmessage=e=>showAlert(JSON.parse(e.data));
+  ws.onclose=()=>setTimeout(connect,3000);
 }
 
-connectWS();
+connect();
 </script>
 
 </body>
