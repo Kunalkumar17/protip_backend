@@ -1,8 +1,8 @@
   import express from "express";
-  import { wss } from "../websocket.js";
   import Tips from "../model/tips.js"
   import Razorpay from 'razorpay'
   import crypto from "crypto";
+  import { broadcastTip } from "../websocket.js";
 
 
   const router = express.Router();
@@ -44,11 +44,7 @@
       message: tip.message
     };
 
-    wss.clients.forEach(client => {
-      if (client.readyState === 1) {
-        client.send(JSON.stringify(donation));
-      }
-    });
+    broadcastTip(donation);
 
     return res.status(201).json({ message: "Payment verified" });
 
