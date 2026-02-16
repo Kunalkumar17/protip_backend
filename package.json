@@ -2,7 +2,7 @@
   "name": "server",
   "main": "app.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node app.js"
   },
   "type": "module",
   "dependencies": {
