@@ -14,19 +14,22 @@ body{
   font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;
 }
 
-#alert-container{
-  position:fixed;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%) scale(0);
-  opacity:0;
-  transition:.5s cubic-bezier(.68,-.55,.265,1.55);
+#alert-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.7);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.4s ease;
 }
 
-#alert-container.show{
-  transform:translate(-50%,-50%) scale(1);
-  opacity:1;
+#alert-container.show {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+  visibility: visible;
 }
+
 
 .alert-box{
   background:linear-gradient(135deg,#ff6b9d,#c44569,#8b5cf6);
