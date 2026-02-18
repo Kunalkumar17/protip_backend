@@ -19,6 +19,7 @@ export const initWebSocket = (server) => {
 export const broadcastTip = (tip) => {
   clients.forEach(client => {
     if (client.readyState === 1) {
+      console.log(tip)
       client.send(JSON.stringify(tip));
     }
   });

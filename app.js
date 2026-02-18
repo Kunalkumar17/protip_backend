@@ -3,6 +3,7 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import http from "http";
+import cron from "node-cron";
 
 import donationsRoutes from "./routes/donations.js";
 import { initWebSocket } from "./websocket.js"; // 👈 important
@@ -27,6 +28,19 @@ const server = http.createServer(app);
 // attach websocket
 initWebSocket(server);
 
+cron.schedule("0 0 * * *", async () => {
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  const result = await Tips.deleteMany({
+    payment: false,
+    createdAt: { $lt: twentyFourHoursAgo }
+  });
+
+  if (result.deletedCount > 0) {
+    console.log("Deleted abandoned tips:", result.deletedCount);
+  }
+});
+
 // start server
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
@@ -35,3 +49,5 @@ mongoose.connect(process.env.MONGO_URI)
     });
   })
   .catch(console.log);
+
+  

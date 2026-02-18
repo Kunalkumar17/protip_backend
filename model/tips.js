@@ -24,6 +24,10 @@ const tipsSchema = new mongoose.Schema(
       required: true,
       lowercase: true,
       trim: true
+    },
+    payment: {
+      type: Boolean,
+      default: false
     }
   },
   {

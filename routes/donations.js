@@ -39,7 +39,7 @@
     const tip = await Tips.findById(order.receipt);
 
     const donation = {
-      user: tip.name,
+      name: tip.name,
       amount: tip.amount,
       message: tip.message
     };
@@ -94,9 +94,9 @@ router.get('/getTips' , async(req,res) =>{
   const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000);
   try {
     const tips = await Tips.find({
+      payment: true,
   createdAt: { $gte: twelveHoursAgo }
 }).sort({ createdAt: -1 });
-    console.log(tips)
     res.status(200).json(tips);
   } catch (error) {
       console.log(error.message)
