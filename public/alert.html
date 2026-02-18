@@ -150,6 +150,26 @@ function sparkles(){
   }
 }
 
+function speakTip(tip) {
+  if (!("speechSynthesis" in window)) return;
+
+  const text =
+    `${tip.user || tip.name || "Someone"} tipped ${tip.currency.toUpperCase()} ${tip.amount}. ` +
+    (tip.message ? tip.message : "");
+
+  const speech = new SpeechSynthesisUtterance(text);
+
+  speech.rate = 1;      // speed (0.5 - 2)
+  speech.pitch = 1;     // voice pitch
+  speech.volume = 1;    // volume
+
+  // optional: choose voice
+  const voices = speechSynthesis.getVoices();
+  if (voices.length) speech.voice = voices[1];
+
+  speechSynthesis.speak(speech);
+}
+
 function confetti(){
   const colors=["#ffeb3b","#ff6b9d","#8b5cf6"];
   for(let i=0;i<30;i++){
@@ -165,11 +185,21 @@ function confetti(){
 function play(tip){
   isPlaying=true;
 
+   speakTip(tip); 
+
   document.getElementById("tipper-name").textContent=
     tip.user||tip.name||"Anonymous";
 
+    if(tip.currency === "usd"){
+      currency = "$";
+    } else if (tip.currency === "aud"){
+      currency = "A$"
+    } else if (tip.currency === "inr"){
+      currency = "₹"
+    }
+
   document.getElementById("tip-amount").textContent=
-    "₹"+Number(tip.amount||0).toFixed(2);
+    currency.toUpperCase()+Number(tip.amount||0).toFixed(2);
 
   const msg=document.getElementById("tip-message");
   msg.textContent=tip.message?'"'+tip.message+'"':"";

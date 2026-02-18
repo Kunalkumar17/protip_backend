@@ -41,6 +41,7 @@
     const donation = {
       name: tip.name,
       amount: tip.amount,
+      currency: tip.currency,
       message: tip.message
     };
 
@@ -69,6 +70,7 @@
       amount,
       message,
       channelName,
+      currency,
       payment: false
     });
 
