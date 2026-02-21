@@ -165,9 +165,11 @@ function speakTip(tip) {
 
   // optional: choose voice
   const voices = speechSynthesis.getVoices();
-  if (voices.length) speech.voice = voices[1];
+  if (voices.length) speech.voice = voices[0];
 
-  speechSynthesis.speak(speech);
+  if(tip.amount >= 100 || (tip.currency != "inr" && tip.amount > 2))
+    speechSynthesis.speak(speech);
+  
 }
 
 function confetti(){
@@ -191,15 +193,15 @@ function play(tip){
     tip.user||tip.name||"Anonymous";
 
     if(tip.currency === "usd"){
-      currency = "$";
+      tip.currency = "$";
     } else if (tip.currency === "aud"){
-      currency = "A$"
+      tip.currency = "A$"
     } else if (tip.currency === "inr"){
-      currency = "₹"
+      tip.currency = "₹"
     }
 
   document.getElementById("tip-amount").textContent=
-    currency.toUpperCase()+Number(tip.amount||0).toFixed(2);
+    tip.currency.toUpperCase()+Number(tip.amount||0).toFixed(2);
 
   const msg=document.getElementById("tip-message");
   msg.textContent=tip.message?'"'+tip.message+'"':"";
