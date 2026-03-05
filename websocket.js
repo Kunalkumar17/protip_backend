@@ -43,7 +43,7 @@ export const broadcastTip = (tip) => {
   };
 
   clients.forEach(client => {
-    if (client.readyState === client.OPEN) {
+    if (client.readyState === 1) {
 
       // Send tip alert
       client.send(JSON.stringify(alertMessage));
