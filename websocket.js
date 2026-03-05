@@ -24,22 +24,21 @@ export const initWebSocket = (server) => {
   });
 };
 
-export const broadcastTip = (tipAmount) => {
+export const broadcastTip = (tip) => {
 
-  console.log(tipAmount)
+  console.log("TIP RECEIVED:", tip);
 
-  const amount = Number(tipAmount.amount) || 0;
-  console.log(amount)
+  const amount = Number(tip.amount) || 0;
 
   currentGoalTotal = Number(currentGoalTotal) || 0;
-  console.log(currentGoalTotal)
 
   currentGoalTotal += amount;
-  console.log(currentGoalTotal);
-  
 
   const message = JSON.stringify({
-    type: "goalUpdate",
+    type: "tip",
+    name: tip.name,
+    amount: amount,
+    message: tip.message || "",
     total: currentGoalTotal
   });
 
