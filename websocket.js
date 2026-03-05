@@ -46,10 +46,10 @@ export const broadcastTip = (tip) => {
     if (client.readyState === 1) {
 
       // Send tip alert
-      client.send(JSON.stringify(alertMessage));
+      client.send(JSON.stringify(tip));
 
       // Send goal update
-      client.send(JSON.stringify(tip));
+      client.send(JSON.stringify(goalMessage));
     }
   });
 };
