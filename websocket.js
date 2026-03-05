@@ -49,7 +49,7 @@ export const broadcastTip = (tip) => {
       client.send(JSON.stringify(alertMessage));
 
       // Send goal update
-      client.send(JSON.stringify(goalMessage));
+      client.send(JSON.stringify(tip));
     }
   });
 };
