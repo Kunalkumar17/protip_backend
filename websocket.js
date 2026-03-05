@@ -34,7 +34,9 @@ export const broadcastTip = (tip) => {
     type: "tipAlert",
     name: tip.name || "Anonymous",
     amount: amount,
-    message: tip.message || ""
+    currency: tip.currency,
+    message: tip.message || "",
+
   };
 
   const goalMessage = {
@@ -46,7 +48,7 @@ export const broadcastTip = (tip) => {
     if (client.readyState === 1) {
 
       // Send tip alert
-      client.send(JSON.stringify(tip));
+      client.send(JSON.stringify(alertMessage));
 
       // Send goal update
       client.send(JSON.stringify(goalMessage));
