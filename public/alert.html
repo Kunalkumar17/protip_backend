@@ -192,16 +192,13 @@ function play(tip){
   document.getElementById("tipper-name").textContent=
     tip.user||tip.name||"Anonymous";
 
-    if(tip.currency === "usd"){
-      tip.currency = "$";
-    } else if (tip.currency === "aud"){
-      tip.currency = "A$"
-    } else if (tip.currency === "inr"){
-      tip.currency = "₹"
-    }
+    let symbol = "₹";
 
-  document.getElementById("tip-amount").textContent=
-    tip.currency.toUpperCase()+Number(tip.amount||0).toFixed(2);
+if(tip.currency === "usd") symbol = "$";
+else if(tip.currency === "aud") symbol = "A$";
+
+document.getElementById("tip-amount").textContent =
+  symbol + Number(tip.amount || 0).toFixed(2);
 
   const msg=document.getElementById("tip-message");
   msg.textContent=tip.message?'"'+tip.message+'"':"";
@@ -235,7 +232,13 @@ function connect(){
     (location.protocol==="https:"?"wss://":"ws://")+location.host
   );
 
-  ws.onmessage=e=>showAlert(JSON.parse(e.data));
+  ws.onmessage = (e) => {
+  const data = JSON.parse(e.data);
+
+  if (data.type === "tipAlert") {
+    showAlert(data);
+  }
+};
   ws.onclose=()=>setTimeout(connect,3000);
 }
 
