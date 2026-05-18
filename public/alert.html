@@ -35,55 +35,81 @@ body{
   visibility:visible;
 }
 
-/* main card */
+/* alert card */
 .alert-box{
   min-width:420px;
-  padding:40px 70px;
-  border-radius:24px;
+  max-width:650px;
+
+  padding:34px 48px;
+
+  border-radius:22px;
+
+  background:rgba(255,255,255,.96);
+
+  box-shadow:
+    0 10px 40px rgba(0,0,0,.22);
+
   text-align:center;
 
-  /* glass background */
-  background:rgba(15,15,18,.75);
-  backdrop-filter:blur(14px);
-
-  /* soft glow border */
-  border:1px solid rgba(255,255,255,.08);
-
-  /* neon glow */
-  box-shadow:
-    0 0 25px rgba(255,235,59,.25),
-    0 10px 40px rgba(0,0,0,.6);
+  position:relative;
 }
 
 /* name */
 #tipper-name{
-  font-size:40px;
-  font-weight:600;
-  color:#e5e7eb;
-  letter-spacing:.5px;
+  font-size:34px;
+  font-weight:700;
+  color:#111827;
+  letter-spacing:.3px;
 }
 
-/* amount */
-.tip-amount{
-  font-size:56px;
-  font-weight:800;
-  margin:18px 0;
+/* line */
+.line-wrapper{
+  width:100%;
+  display:flex;
+  justify-content:center;
+  margin:18px 0 18px;
+}
 
-  background:linear-gradient(90deg,#ffe066,#ffeb3b,#fff176);
-  -webkit-background-clip:text;
-  -webkit-text-fill-color:transparent;
+.animated-line{
+  height:3px;
+  width:0;
+  background:#000;
+  border-radius:999px;
+}
 
-  text-shadow:0 0 20px rgba(255,235,59,.5);
+/* animate line when alert shows */
+#alert-container.show .animated-line{
+  animation:
+    lineOpen 1s ease forwards,
+    lineClose 1s ease forwards 5s;
 }
 
 /* message */
 #tip-message{
-  font-size:28px;
-  color:#9ca3af;
-  max-width:360px;
-  margin:0 auto;
+  font-size:24px;
+  color:#374151;
   line-height:1.5;
   font-style:italic;
+  word-break:break-word;
+}
+
+/* line animations */
+@keyframes lineOpen{
+  from{
+    width:0;
+  }
+  to{
+    width:100%;
+  }
+}
+
+@keyframes lineClose{
+  from{
+    width:100%;
+  }
+  to{
+    width:0;
+  }
 }
 
 /* sparkle */
@@ -129,9 +155,15 @@ body{
 
 <div id="alert-container">
   <div class="alert-box">
-    <div id="tipper-name">Anonymous</div>
-    <div class="tip-amount" id="tip-amount">₹0.00</div>
+
+    <div id="tipper-name">Anonymous tipped</div>
+
+    <div class="line-wrapper">
+      <div class="animated-line"></div>
+    </div>
+
     <div id="tip-message"></div>
+
   </div>
 </div>
 
@@ -182,48 +214,43 @@ function speakTip(tip) {
   });
 }
 
-function confetti(){
-  const colors=["#ffeb3b","#ff6b9d","#8b5cf6"];
-  for(let i=0;i<30;i++){
-    const c=document.createElement("div");
-    c.className="confetti";
-    c.style.left=Math.random()*100+"%";
-    c.style.background=colors[Math.floor(Math.random()*3)];
-    document.body.appendChild(c);
-    setTimeout(()=>c.remove(),3000);
-  }
-}
-
 async function play(tip){
 
   isPlaying = true;
 
-  document.getElementById("tipper-name").textContent =
-    tip.user || tip.name || "Anonymous";
-
-  let symbol = "₹";
+    let symbol = "₹";
   if(tip.currency === "usd") symbol = "$";
   else if(tip.currency === "aud") symbol = "A$";
 
-  document.getElementById("tip-amount").textContent =
-    symbol + Number(tip.amount || 0).toFixed(2);
+  document.getElementById("tipper-name").textContent =
+    `${tip.user || tip.name || "Anonymous"} tipped ${symbol}${Number(tip.amount || 0).toFixed(2)}`;
 
   const msg = document.getElementById("tip-message");
-  msg.textContent = tip.message ? `"${tip.message}"` : "";
+
+
+  msg.textContent =
+    `${tip.message || ""}`;
 
   const el = document.getElementById("alert-container");
+
+  /* restart line animation */
+  const line = document.querySelector(".animated-line");
+  line.style.animation = "none";
+  void line.offsetWidth;
+  line.style.animation = "";
+
   el.classList.add("show");
 
-  sparkles();
-  confetti();
+  // sparkles();
+  // confetti();
 
-  await speakTip(tip);
+  // await speakTip(tip);
 
   setTimeout(()=>{
     el.classList.remove("show");
     isPlaying = false;
     next();
-  },1500);
+  },6000);
 }
 
 function next(){
@@ -243,12 +270,13 @@ function connect(){
   );
 
   ws.onmessage = (e) => {
-  const data = JSON.parse(e.data);
+    const data = JSON.parse(e.data);
 
-  if (data.type === "tipAlert") {
-    showAlert(data);
-  }
-};
+    if (data.type === "tipAlert") {
+      showAlert(data);
+    }
+  };
+
   ws.onclose=()=>setTimeout(connect,3000);
 }
 
