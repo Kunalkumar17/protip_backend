@@ -537,50 +537,30 @@ function sparkles() {
    TEXT TO SPEECH
 ========================================= */
 
-let voicesReady = null;
+let tokenCache = { value: null, expiresAt: 0 };
 
-function waitForVoices() {
-  if (voicesReady) return voicesReady;
-  voicesReady = new Promise((resolve) => {
-    const existing = speechSynthesis.getVoices();
-    if (existing.length) {
-      resolve(existing);
-      return;
-    }
-    speechSynthesis.onvoiceschanged = () => {
-      resolve(speechSynthesis.getVoices());
-    };
-  });
-  return voicesReady;
+async function getAzureToken() {
+  const now = Date.now();
+  if (tokenCache.value && now < tokenCache.expiresAt) {
+    return tokenCache.value;
+  }
+
+  const res = await fetch("/api/tts-token"); // same-origin, no key exposed
+  const { token, region } = await res.json();
+
+  window.AZURE_REGION = region;
+  tokenCache = { value: token, expiresAt: now + 9 * 60 * 1000 };
+  return token;
 }
 
-function pickVoice(voices) {
-  // Known female Hindi voice names across platforms
-  const femaleHindiNames = ["swara", "heera", "kalpana", "lekha", "priya"];
-
-  return (
-    // 1. Exact match: Hindi + known female name
-    voices.find(
-      v => v.lang === "hi-IN" &&
-        femaleHindiNames.some(name => v.name.toLowerCase().includes(name))
-    ) ||
-    // 2. Any Hindi voice with "female" in the name
-    voices.find(
-      v => v.lang?.startsWith("hi") && v.name.toLowerCase().includes("female")
-    ) ||
-    // 3. Any Hindi voice at all (fallback)
-    voices.find(v => v.lang?.startsWith("hi")) ||
-    // 4. Last resort: whatever was there before
-    voices[2] ||
-    voices[0]
-  );
+function escapeSSML(text) {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 async function speakTip(tip) {
-  if (!("speechSynthesis" in window)) return;
-
-  const voices = await waitForVoices();
-
   const parts = [
     tip.user || tip.name || "Someone",
     "tipped",
@@ -592,29 +572,53 @@ async function speakTip(tip) {
 
   if (!(tip.convertedAmount >= 100)) return;
 
-  return new Promise((resolve) => {
-    const speech = new SpeechSynthesisUtterance(text);
-    speech.rate = 1;
-    speech.pitch = 1;
-    speech.volume = 1;
-    speech.voice = pickVoice(voices);
+  try {
+    const token = await getAzureToken();
 
-    speech.onend = resolve;
-    speech.onerror = resolve;
+    const ssml = `
+      <speak version="1.0" xml:lang="hi-IN">
+        <voice name="hi-IN-SwaraNeural">
+          ${escapeSSML(text)}
+        </voice>
+      </speak>
+    `.trim();
 
-    speechSynthesis.speak(speech);
-  });
-}
+    const res = await fetch(
+      `https://${window.AZURE_REGION}.tts.speech.microsoft.com/cognitiveservices/v1`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/ssml+xml",
+          "X-Microsoft-OutputFormat": "audio-24khz-96kbitrate-mono-mp3",
+        },
+        body: ssml,
+      }
+    );
 
-// Chrome bug workaround: speechSynthesis silently pauses/cuts audio
-// after ~15s, especially in backgrounded contexts like an OBS
-// browser source. This nudges it to keep going.
-setInterval(() => {
-  if (speechSynthesis.speaking) {
-    speechSynthesis.pause();
-    speechSynthesis.resume();
+    if (!res.ok) {
+      console.error("Azure TTS failed:", res.status, await res.text());
+      return;
+    }
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+
+    await new Promise((resolve) => {
+      audio.onended = resolve;
+      audio.onerror = resolve;
+      audio.play().catch((err) => {
+        console.warn("Playback blocked:", err);
+        resolve();
+      });
+    });
+
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error("TTS error:", err);
   }
-}, 5000);
+}
 
 
 /* =========================================

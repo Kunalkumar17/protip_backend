@@ -45,6 +45,21 @@ cron.schedule("0 0 * * *", async () => {
   }
 });
 
+app.get("/api/tts-token", async (req, res) => {
+  try {
+    const azureRes = await fetch(
+      `https://${process.env.AZURE_REGION}.api.cognitive.microsoft.com/sts/v1.0/issueToken`,
+      { method: "POST", headers: { "Ocp-Apim-Subscription-Key": process.env.AZURE_KEY } }
+    );
+    if (!azureRes.ok) throw new Error(`Azure token failed: ${azureRes.status}`);
+    const token = await azureRes.text();
+    res.json({ token, region: process.env.AZURE_REGION });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Token fetch failed" });
+  }
+});
+
 // start server
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
