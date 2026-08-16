@@ -13,6 +13,8 @@ const port = process.env.PORT || 3000;
 
 const app = express();
 
+app.set("trust proxy", 1);
+
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.static("public"));

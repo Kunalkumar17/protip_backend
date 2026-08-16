@@ -5,14 +5,50 @@
   import { broadcastTip, broadcast } from "../websocket.js";
   import jwt from "jsonwebtoken";
   import Goal from "../model/goal.js";
+  import rateLimit from "express-rate-limit";
 
 
   const router = express.Router();
+  
 
   const razorpayInstance = new Razorpay({
     key_id: process.env.RAZOR_KEY_ID,
     key_secret: process.env.RAZOR_SECRET_KEY
 })
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Maximum 5 attempts per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+
+  message: {
+    message: "Too many login attempts. Please try again after 15 minutes."
+  }
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+
+  message: {
+    message: "Too many requests. Please slow down."
+  }
+});
+
+const paymentLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    message: "Too many payment requests. Please wait a moment."
+  }
+});
+
+router.use(apiLimiter);
 
 const requireDashboardSession = (req, res, next) => {
   const token = req.cookies.dashboardSession;
@@ -65,7 +101,7 @@ async function convertToINR(amount, currency) {
   }
 }
 
-  router.post("/verifyRazorpay", async (req, res) => {
+  router.post("/verifyRazorpay",paymentLimiter, async (req, res) => {
   const {
     razorpay_order_id,
     razorpay_payment_id,
@@ -139,7 +175,7 @@ await broadcastTip(donation);
 });
 
 
-  router.post("/razorpay", async (req, res) => {
+  router.post("/razorpay", paymentLimiter, async (req, res) => {
   const channelName = "Berry";
   const {
   name,
@@ -273,7 +309,7 @@ router.post("/unlockGoal", (req, res) => {
 
   res.cookie("goalSession", token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: true,
     sameSite: "lax",
     maxAge: 30 * 24 * 60 * 60 * 1000
   });
@@ -289,7 +325,7 @@ router.get("/checkGoalSession", requireDashboardSession, (req, res) => {
   });
 });
 
-router.post("/login", (req, res) => {
+router.post("/login", loginLimiter, (req, res) => {
   const { password } = req.body;
 
   if (password !== process.env.GOAL_ADMIN_PASSWORD) {
@@ -311,7 +347,7 @@ router.post("/login", (req, res) => {
     maxAge: 30 * 24 * 60 * 60 * 1000
   });
 
-  res.json({
+  return res.json({
     message: "Logged in successfully"
   });
 });

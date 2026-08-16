@@ -537,65 +537,84 @@ function sparkles() {
    TEXT TO SPEECH
 ========================================= */
 
-function speakTip(tip) {
+let voicesReady = null;
 
-  return new Promise((resolve) => {
-
-    if (!("speechSynthesis" in window)) {
-      resolve();
+function waitForVoices() {
+  if (voicesReady) return voicesReady;
+  voicesReady = new Promise((resolve) => {
+    const existing = speechSynthesis.getVoices();
+    if (existing.length) {
+      resolve(existing);
       return;
     }
+    speechSynthesis.onvoiceschanged = () => {
+      resolve(speechSynthesis.getVoices());
+    };
+  });
+  return voicesReady;
+}
 
-    const text =
-      `${tip.user || tip.name || "Someone"} tipped ` +
-      `${tip.currency?.toUpperCase() || ""} ` +
-      `${tip.amount}. ` +
-      `${tip.message ? tip.message : ""}`;
+function pickVoice(voices) {
+  // Known female Hindi voice names across platforms
+  const femaleHindiNames = ["swara", "heera", "kalpana", "lekha", "priya"];
 
+  return (
+    // 1. Exact match: Hindi + known female name
+    voices.find(
+      v => v.lang === "hi-IN" &&
+        femaleHindiNames.some(name => v.name.toLowerCase().includes(name))
+    ) ||
+    // 2. Any Hindi voice with "female" in the name
+    voices.find(
+      v => v.lang?.startsWith("hi") && v.name.toLowerCase().includes("female")
+    ) ||
+    // 3. Any Hindi voice at all (fallback)
+    voices.find(v => v.lang?.startsWith("hi")) ||
+    // 4. Last resort: whatever was there before
+    voices[2] ||
+    voices[0]
+  );
+}
 
-    const speech =
-      new SpeechSynthesisUtterance(text);
+async function speakTip(tip) {
+  if (!("speechSynthesis" in window)) return;
 
+  const voices = await waitForVoices();
 
+  const parts = [
+    tip.user || tip.name || "Someone",
+    "tipped",
+    tip.currency ? tip.currency.toUpperCase() : "",
+    String(tip.amount),
+  ].filter(Boolean);
+
+  const text = parts.join(" ") + (tip.message ? `. ${tip.message}` : ".");
+
+  if (!(tip.convertedAmount >= 100)) return;
+
+  return new Promise((resolve) => {
+    const speech = new SpeechSynthesisUtterance(text);
     speech.rate = 1;
     speech.pitch = 1;
     speech.volume = 1;
-
+    speech.voice = pickVoice(voices);
 
     speech.onend = resolve;
-
     speech.onerror = resolve;
 
-
-    const voices =
-      speechSynthesis.getVoices();
-
-    if (voices.length) {
-      speech.voice = voices[0];
-    }
-
-
-    /*
-      Only speak larger tips.
-
-      INR: ₹100+
-      Other currencies: > 2
-    */
-   console.log("Converted Amount:",tip.convertedAmount);
-    if (
-      tip.convertedAmount >= 100
-    ) {
-
-      speechSynthesis.speak(speech);
-
-    } else {
-
-      resolve();
-
-    }
-
+    speechSynthesis.speak(speech);
   });
 }
+
+// Chrome bug workaround: speechSynthesis silently pauses/cuts audio
+// after ~15s, especially in backgrounded contexts like an OBS
+// browser source. This nudges it to keep going.
+setInterval(() => {
+  if (speechSynthesis.speaking) {
+    speechSynthesis.pause();
+    speechSynthesis.resume();
+  }
+}, 5000);
 
 
 /* =========================================
