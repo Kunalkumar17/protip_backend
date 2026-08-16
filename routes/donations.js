@@ -2,8 +2,9 @@
   import Tips from "../model/tips.js"
   import Razorpay from 'razorpay'
   import crypto from "crypto";
-  import { broadcastTip, resetGoal, setGoal } from "../websocket.js";
+  import { broadcastTip, broadcast } from "../websocket.js";
   import jwt from "jsonwebtoken";
+  import Goal from "../model/goal.js";
 
 
   const router = express.Router();
@@ -127,7 +128,7 @@ const donation = {
   convertedAmount
 };
 
-broadcastTip(donation);
+await broadcastTip(donation);
 
     return res.status(201).json({ message: "Payment verified" });
 
@@ -251,30 +252,6 @@ router.get("/topDonaters", async (req, res) => {
   }
 });
 
-router.post("/setGoal",requireDashboardSession, (req, res) => {
-  const { name, target } = req.body;
-
-  if (!name || !target || Number(target) <= 0) {
-    return res.status(400).json({
-      message: "Goal name and valid target are required",
-    });
-  }
-
-  setGoal(name, target);
-
-  return res.status(200).json({
-    message: "Goal created successfully",
-  });
-});
-
-router.post("/resetGoal", requireDashboardSession, (req, res) => {
-  resetGoal();
-
-  return res.status(200).json({
-    message: "Goal reset successfully",
-  });
-});
-
 router.post("/unlockGoal", (req, res) => {
   const { password } = req.body;
 
@@ -346,5 +323,83 @@ router.get(
     res.json({ authenticated: true });
   }
 );
+
+router.post("/setGoal",requireDashboardSession, async (req, res) => {
+  try {
+    const { name, target } = req.body;
+
+    if (!name || !target || Number(target) <= 0) {
+      return res.status(400).json({
+        message: "Valid goal name and target are required",
+      });
+    }
+
+    let goal = await Goal.findOne();
+
+    if (goal) {
+      goal.name = name;
+      goal.target = Number(target);
+      goal.total = 0;
+
+      await goal.save();
+    } else {
+      goal = await Goal.create({
+        name,
+        target: Number(target),
+        total: 0,
+      });
+    }
+
+    broadcast({
+      type: "goalUpdate",
+      goal,
+    });
+
+    res.status(200).json({
+      message: "Goal created successfully",
+      goal,
+    });
+
+  } catch (error) {
+    console.error("Set goal error:", error);
+
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+});
+
+router.post("/resetGoal", requireDashboardSession, async (req, res) => {
+  try {
+    let goal = await Goal.findOne();
+
+    if (!goal) {
+      return res.status(404).json({
+        message: "No goal found",
+      });
+    }
+
+    goal.total = 0;
+
+    await goal.save();
+
+    broadcast({
+      type: "goalUpdate",
+      goal,
+    });
+
+    res.status(200).json({
+      message: "Goal reset successfully",
+      goal,
+    });
+
+  } catch (error) {
+    console.error("Reset goal error:", error);
+
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+});
 
 export default router;
