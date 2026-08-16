@@ -6,157 +6,406 @@
 <title>Tip Alert</title>
 
 <style>
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-body{
-  background:transparent;
-  overflow:hidden;
-  font-family:Inter, Segoe UI, system-ui, sans-serif;
+html,
+body {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  font-family: Inter, Segoe UI, system-ui, sans-serif;
 }
 
-/* container animation */
-#alert-container{
-  position:fixed;
-  top:50%;
-  left:50%;
-  transform:translate(-50%, -50%) scale(.85);
-  opacity:0;
-  visibility:hidden;
-  transition:all .35s cubic-bezier(.2,.8,.2,1);
+/* =========================================
+   ALERT CONTAINER
+========================================= */
+
+#alert-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+
+  transform:
+    translate(-50%, -50%)
+    translateY(25px)
+    scale(.94);
+
+  opacity: 0;
+  visibility: hidden;
+
+  transition:
+    opacity .45s ease,
+    transform .55s cubic-bezier(.16, 1, .3, 1);
+
+  pointer-events: none;
 }
 
-#alert-container.show{
-  transform:translate(-50%, -50%) scale(1);
-  opacity:1;
-  visibility:visible;
+#alert-container.show {
+  transform:
+    translate(-50%, -50%)
+    translateY(0)
+    scale(1);
+
+  opacity: 1;
+  visibility: visible;
 }
 
-/* alert card */
-.alert-box{
-  min-width:420px;
-  max-width:650px;
+/* =========================================
+   ALERT BOX
+========================================= */
 
-  padding:34px 48px;
+.alert-box {
+  position: relative;
 
-  border-radius:22px;
+  width: min(620px, 90vw);
 
-  background:rgba(255,255,255,.96);
+  padding: 30px 42px 32px;
+
+  border-radius: 24px;
+
+  /* Dark glass background */
+  background: rgba(15, 15, 20, 0.78);
+
+  /* Subtle glass border */
+  border: 1px solid rgba(255, 255, 255, 0.12);
 
   box-shadow:
-    0 10px 40px rgba(0,0,0,.22);
+    0 20px 60px rgba(0, 0, 0, 0.45),
+    0 0 35px rgba(168, 85, 247, 0.18);
 
-  text-align:center;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 
-  position:relative;
+  text-align: center;
+
+  overflow: hidden;
 }
 
-/* name */
-#tipper-name{
-  font-size:34px;
-  font-weight:700;
-  color:#111827;
-  letter-spacing:.3px;
+/* =========================================
+   TOP ACCENT
+========================================= */
+
+.alert-box::before {
+  content: "";
+
+  position: absolute;
+
+  top: 0;
+  left: 0;
+
+  width: 100%;
+  height: 4px;
+
+  background:
+    linear-gradient(
+      90deg,
+      #ec4899,
+      #a855f7,
+      #6366f1,
+      #a855f7,
+      #ec4899
+    );
+
+  background-size: 200% 100%;
+  animation: gradientMove 3s linear infinite;
 }
 
-/* line */
-.line-wrapper{
-  width:100%;
-  display:flex;
-  justify-content:center;
-  margin:18px 0 18px;
-}
-
-.animated-line{
-  height:3px;
-  width:0;
-  background:#000;
-  border-radius:999px;
-}
-
-/* animate line when alert shows */
-#alert-container.show .animated-line{
-  animation:
-    lineOpen 1s ease forwards,
-    lineClose 1s ease forwards 5s;
-}
-
-/* message */
-#tip-message{
-  font-size:24px;
-  color:#374151;
-  line-height:1.5;
-  font-style:italic;
-  word-break:break-word;
-}
-
-/* line animations */
-@keyframes lineOpen{
-  from{
-    width:0;
+@keyframes gradientMove {
+  from {
+    background-position: 0% 50%;
   }
-  to{
-    width:100%;
+
+  to {
+    background-position: 200% 50%;
   }
 }
 
-@keyframes lineClose{
-  from{
-    width:100%;
+/* =========================================
+   HEADER
+========================================= */
+
+.tip-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  margin-bottom: 8px;
+
+  color: #c084fc;
+
+  font-size: 12px;
+  font-weight: 800;
+
+  letter-spacing: 2.5px;
+
+  text-transform: uppercase;
+}
+
+.tip-heart {
+  display: inline-block;
+
+  font-size: 15px;
+
+  animation: heartBeat 1.2s ease-in-out infinite;
+}
+
+@keyframes heartBeat {
+  0%,
+  100% {
+    transform: scale(1);
   }
-  to{
-    width:0;
+
+  50% {
+    transform: scale(1.2);
   }
 }
 
-/* sparkle */
-.sparkle,.confetti{
-  position:absolute;
+/* =========================================
+   NAME + AMOUNT
+========================================= */
+
+#tipper-name {
+  font-size: 30px;
+  font-weight: 750;
+  color: #ffffff;
+  letter-spacing: -.5px;
+  line-height: 1.2;
 }
 
-.sparkle{
-  width:14px;
-  height:14px;
-  background:white;
-  opacity:.9;
-  clip-path:polygon(
-    50% 0%,61% 35%,98% 35%,
-    68% 57%,79% 91%,50% 70%,
-    21% 91%,32% 57%,2% 35%,39% 35%
+#tip-amount {
+  margin-top: 6px;
+
+  font-size: 22px;
+  font-weight: 800;
+
+  background: linear-gradient(
+    90deg,
+    #f472b6,
+    #c084fc
   );
-  animation:sparkle 2s forwards;
+
+  -webkit-background-clip: text;
+  background-clip: text;
+
+  color: transparent;
 }
 
-@keyframes sparkle{
-  0%{opacity:0;transform:scale(.5)}
-  40%{opacity:1}
-  100%{opacity:0;transform:translateY(-120px) scale(1.2)}
+#tip-message {
+  font-size: 19px;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.55;
+  font-style: italic;
+  word-break: break-word;
+  max-width: 540px;
+  margin: auto;
 }
 
-/* confetti */
-.confetti{
-  width:8px;
-  height:12px;
-  border-radius:2px;
-  animation:fall 3s forwards;
+/* =========================================
+   DIVIDER
+========================================= */
+
+.line-wrapper {
+  width: 100%;
+
+  display: flex;
+  justify-content: center;
+
+  margin: 20px 0 18px;
 }
 
-@keyframes fall{
-  0%{opacity:1;transform:translateY(-40px)}
-  100%{opacity:0;transform:translateY(650px) rotate(720deg)}
+.animated-line {
+  width: 0;
+  height: 3px;
+
+  border-radius: 999px;
+
+  background:
+    linear-gradient(
+      90deg,
+      #ec4899,
+      #a855f7,
+      #6366f1
+    );
+
+  box-shadow:
+    0 0 10px rgba(168, 85, 247, .35);
+}
+
+/*
+  Open for 0.8 sec,
+  stay open,
+  then close.
+*/
+
+#alert-container.show .animated-line {
+  animation:
+    lineOpen .8s cubic-bezier(.16, 1, .3, 1) forwards,
+    lineClose .8s ease forwards 5.2s;
+}
+
+@keyframes lineOpen {
+  from {
+    width: 0;
+  }
+
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes lineClose {
+  from {
+    width: 100%;
+  }
+
+  to {
+    width: 0;
+  }
+}
+
+/* =========================================
+   MESSAGE
+========================================= */
+
+#tip-message {
+  font-size: 19px;
+
+  color: #4b5563;
+
+  line-height: 1.55;
+
+  font-style: italic;
+
+  word-break: break-word;
+
+  max-width: 540px;
+
+  margin: auto;
+}
+
+/* =========================================
+   MESSAGE QUOTES
+========================================= */
+
+.message-quote {
+  color: #c084fc;
+
+  font-size: 25px;
+
+  font-weight: 800;
+
+  vertical-align: -4px;
+
+  margin: 0 3px;
+}
+
+/* =========================================
+   SPARKLES
+========================================= */
+
+.sparkle {
+  position: absolute;
+
+  width: 12px;
+  height: 12px;
+
+  background: white;
+
+  opacity: 0;
+
+  clip-path: polygon(
+    50% 0%,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
+
+  animation:
+    sparkle 2s ease-out forwards;
+
+  pointer-events: none;
+}
+
+@keyframes sparkle {
+  0% {
+    opacity: 0;
+    transform:
+      translateY(20px)
+      scale(.4)
+      rotate(0deg);
+  }
+
+  25% {
+    opacity: .9;
+  }
+
+  100% {
+    opacity: 0;
+    transform:
+      translateY(-120px)
+      scale(1.15)
+      rotate(90deg);
+  }
+}
+
+/* =========================================
+   SUBTLE GLOW
+========================================= */
+
+.alert-box::after {
+  content: "";
+
+  position: absolute;
+
+  width: 220px;
+  height: 220px;
+
+  top: -150px;
+  right: -100px;
+
+  background: rgba(168, 85, 247, .10);
+
+  border-radius: 50%;
+
+  filter: blur(30px);
+
+  pointer-events: none;
 }
 </style>
 </head>
 
+
 <body>
 
 <div id="alert-container">
+
   <div class="alert-box">
 
-    <div id="tipper-name">Anonymous tipped</div>
+    <div class="tip-header">
+      <span class="tip-heart">♥</span>
+      NEW TIP
+      <span class="tip-heart">♥</span>
+    </div>
+
+    <div id="tipper-name">
+      Anonymous tipped
+    </div>
+
+    <div id="tip-amount">
+      ₹0.00
+    </div>
 
     <div class="line-wrapper">
       <div class="animated-line"></div>
@@ -165,24 +414,131 @@ body{
     <div id="tip-message"></div>
 
   </div>
+
 </div>
 
-<script>
-let isPlaying=false;
-const queue=[];
 
-function sparkles(){
-  const box=document.querySelector(".alert-box");
-  for(let i=0;i<15;i++){
-    const s=document.createElement("div");
-    s.className="sparkle";
-    s.style.left=Math.random()*100+"%";
-    box.appendChild(s);
-    setTimeout(()=>s.remove(),2000);
+<script>
+
+let isPlaying = false;
+
+const queue = [];
+
+const DISPLAY_TIME = 6000;
+
+const MEME_SOUNDS = {
+  emotionalsound: "/sounds/emotionalsound.mp3",
+  aayein: "/sounds/aayein.mp3",
+  faaah: "/sounds/faaah.mp3",
+  snore: "/sounds/snore.mp3",
+};
+
+let currentMemeAudio = null;
+
+function playMemeSound(soundId) {
+  console.log("Trying to play sound ID:", soundId);
+
+  const soundPath = MEME_SOUNDS[soundId];
+
+  console.log("Sound path:", soundPath);
+
+  if (!soundPath) {
+    console.error("Sound not found for ID:", soundId);
+    return;
+  }
+
+  if (currentMemeAudio) {
+    currentMemeAudio.pause();
+    currentMemeAudio.currentTime = 0;
+  }
+
+  currentMemeAudio = new Audio(soundPath);
+
+  currentMemeAudio.volume = 1;
+
+  currentMemeAudio.addEventListener("loadeddata", () => {
+    console.log("Audio loaded successfully:", soundPath);
+  });
+
+  currentMemeAudio.addEventListener("error", () => {
+    console.error(
+      "Audio failed to load:",
+      soundPath,
+      currentMemeAudio.error
+    );
+  });
+
+  currentMemeAudio.play()
+    .then(() => {
+      console.log("🔊 Sound playing");
+    })
+    .catch((error) => {
+      console.error("❌ Audio play failed:", error);
+    });
+}
+
+
+/* =========================================
+   ELEMENTS
+========================================= */
+
+const alertContainer =
+  document.getElementById("alert-container");
+
+const alertBox =
+  document.querySelector(".alert-box");
+
+const tipperName =
+  document.getElementById("tipper-name");
+
+const tipAmount =
+  document.getElementById("tip-amount");
+
+const tipMessage =
+  document.getElementById("tip-message");
+
+const line =
+  document.querySelector(".animated-line");
+
+
+/* =========================================
+   SPARKLES
+========================================= */
+
+function sparkles() {
+
+  for (let i = 0; i < 15; i++) {
+
+    const sparkle =
+      document.createElement("div");
+
+    sparkle.className =
+      "sparkle";
+
+    sparkle.style.left =
+      Math.random() * 100 + "%";
+
+    sparkle.style.top =
+      (50 + Math.random() * 40) + "%";
+
+    sparkle.style.animationDelay =
+      Math.random() * .5 + "s";
+
+    alertBox.appendChild(sparkle);
+
+    setTimeout(() => {
+      sparkle.remove();
+    }, 2500);
   }
 }
 
+
+/* =========================================
+   TEXT TO SPEECH
+========================================= */
+
 function speakTip(tip) {
+
   return new Promise((resolve) => {
 
     if (!("speechSynthesis" in window)) {
@@ -191,96 +547,327 @@ function speakTip(tip) {
     }
 
     const text =
-      `${tip.user || tip.name || "Someone"} tipped ${tip.currency?.toUpperCase() || ""} ${tip.amount}. ` +
-      (tip.message ? tip.message : "");
+      `${tip.user || tip.name || "Someone"} tipped ` +
+      `${tip.currency?.toUpperCase() || ""} ` +
+      `${tip.amount}. ` +
+      `${tip.message ? tip.message : ""}`;
 
-    const speech = new SpeechSynthesisUtterance(text);
+
+    const speech =
+      new SpeechSynthesisUtterance(text);
+
 
     speech.rate = 1;
     speech.pitch = 1;
     speech.volume = 1;
 
+
     speech.onend = resolve;
 
-    const voices = speechSynthesis.getVoices();
-    if (voices.length) speech.voice = voices[0];
+    speech.onerror = resolve;
 
-    if(tip.amount >= 100 || (tip.currency != "inr" && tip.amount > 2)){
+
+    const voices =
+      speechSynthesis.getVoices();
+
+    if (voices.length) {
+      speech.voice = voices[0];
+    }
+
+
+    /*
+      Only speak larger tips.
+
+      INR: ₹100+
+      Other currencies: > 2
+    */
+   console.log("Converted Amount:",tip.convertedAmount);
+    if (
+      tip.convertedAmount >= 100
+    ) {
+
       speechSynthesis.speak(speech);
+
     } else {
+
       resolve();
+
     }
 
   });
 }
 
-async function play(tip){
+
+/* =========================================
+   FORMAT CURRENCY
+========================================= */
+
+function getCurrencySymbol(currency) {
+
+  const value =
+    currency?.toLowerCase();
+
+  if (value === "inr") return "₹";
+  if (value === "usd") return "$";
+  if (value === "aud") return "A$";
+  if (value === "eur") return "€";
+  if (value === "gbp") return "£";
+  if (value === "cad") return "C$";
+  if (value === "sgd") return "S$";
+  if (value === "chf") return "CHF ";
+
+  return value;
+}
+
+
+/* =========================================
+   PLAY TIP
+========================================= */
+
+async function play(tip) {
 
   isPlaying = true;
 
-    let symbol = "₹";
-  if(tip.currency === "usd") symbol = "$";
-  else if(tip.currency === "aud") symbol = "A$";
-
-  document.getElementById("tipper-name").textContent =
-    `${tip.user || tip.name || "Anonymous"} tipped ${symbol}${Number(tip.amount || 0).toFixed(2)}`;
-
-  const msg = document.getElementById("tip-message");
+   if (tip.memeSound) {
+    playMemeSound(tip.memeSound);
+  }
 
 
-  msg.textContent =
-    `${tip.message || ""}`;
+  const symbol =
+    getCurrencySymbol(tip.currency);
 
-  const el = document.getElementById("alert-container");
 
-  /* restart line animation */
-  const line = document.querySelector(".animated-line");
+  const amount =
+    Number(tip.amount || 0);
+
+
+  /*
+    NAME
+  */
+
+  tipperName.textContent =
+    `${tip.user || tip.name || "Anonymous"} tipped`;
+
+
+  /*
+    AMOUNT
+  */
+
+  tipAmount.textContent =
+    `${symbol}${amount.toFixed(2)}`;
+
+
+  /*
+    MESSAGE
+  */
+
+  tipMessage.innerHTML = "";
+
+
+  if (tip.message) {
+
+    const leftQuote =
+      document.createElement("span");
+
+    leftQuote.className =
+      "message-quote";
+
+    leftQuote.textContent =
+      "“";
+
+
+    const message =
+      document.createElement("span");
+
+    message.textContent =
+      tip.message;
+
+
+    const rightQuote =
+      document.createElement("span");
+
+    rightQuote.className =
+      "message-quote";
+
+    rightQuote.textContent =
+      "”";
+
+
+    tipMessage.appendChild(leftQuote);
+
+    tipMessage.appendChild(message);
+
+    tipMessage.appendChild(rightQuote);
+
+  }
+
+
+  /*
+    RESTART LINE ANIMATION
+  */
+
   line.style.animation = "none";
+
   void line.offsetWidth;
+
   line.style.animation = "";
 
-  el.classList.add("show");
 
-  // sparkles();
-  // confetti();
+  /*
+    SHOW
+  */
 
-  // await speakTip(tip);
+  alertContainer.classList.add("show");
 
-  setTimeout(()=>{
-    el.classList.remove("show");
-    isPlaying = false;
-    next();
-  },6000);
+
+  /*
+    Sparkles
+  */
+
+  sparkles();
+
+
+  /*
+    TTS
+
+    Uncomment this if you want
+    the alert to wait for TTS.
+  */
+
+    await speakTip(tip);
+
+
+  /*
+    HIDE
+  */
+
+  setTimeout(() => {
+
+    alertContainer.classList.remove("show");
+
+    setTimeout(() => {
+
+      isPlaying = false;
+
+      next();
+
+    }, 500);
+
+  }, DISPLAY_TIME);
+
 }
 
-function next(){
-  if(queue.length && !isPlaying) play(queue.shift());
+
+/* =========================================
+   QUEUE
+========================================= */
+
+function next() {
+
+  if (
+    queue.length &&
+    !isPlaying
+  ) {
+
+    play(queue.shift());
+
+  }
+
 }
 
-function showAlert(tip){
+
+function showAlert(tip) {
+
   queue.push(tip);
+
   next();
+
 }
 
-/* websocket */
 
-function connect(){
-  const ws=new WebSocket(
-    (location.protocol==="https:"?"wss://":"ws://")+location.host
-  );
+/* =========================================
+   WEBSOCKET
+========================================= */
 
-  ws.onmessage = (e) => {
-    const data = JSON.parse(e.data);
+function connect() {
 
-    if (data.type === "tipAlert") {
-      showAlert(data);
-    }
+  const protocol =
+    location.protocol === "https:"
+      ? "wss://"
+      : "ws://";
+
+
+  const ws =
+    new WebSocket(
+      protocol + location.host
+    );
+
+
+  ws.onopen = () => {
+
+    console.log(
+      "Tip WebSocket connected"
+    );
+
   };
 
-  ws.onclose=()=>setTimeout(connect,3000);
+
+  ws.onmessage = (event) => {
+
+    try {
+
+      const data =
+        JSON.parse(event.data);
+
+
+      if (
+        data.type === "tipAlert"
+      ) {
+
+        showAlert(data);
+
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Invalid WebSocket data:",
+        error
+      );
+
+    }
+
+  };
+
+
+  ws.onerror = (error) => {
+
+    console.error(
+      "WebSocket error:",
+      error
+    );
+
+  };
+
+
+  ws.onclose = () => {
+
+    console.log(
+      "WebSocket disconnected. Reconnecting..."
+    );
+
+    setTimeout(
+      connect,
+      3000
+    );
+
+  };
+
 }
 
+
 connect();
+
 </script>
 
 </body>

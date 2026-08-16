@@ -34,7 +34,15 @@ const tipsSchema = new mongoose.Schema(
       required: true,
       lowercase: true,
       
-    }
+    },
+    convertedAmount: {
+    type: Number,
+    default: 0
+    },
+    memeSound: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true

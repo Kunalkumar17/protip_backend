@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import cors from "cors";
 import http from "http";
 import cron from "node-cron";
+import cookieParser from "cookie-parser";
 
 import donationsRoutes from "./routes/donations.js";
 import { initWebSocket } from "./websocket.js"; // 👈 important
@@ -13,6 +14,7 @@ const port = process.env.PORT || 3000;
 const app = express();
 
 app.use(express.json());
+app.use(cookieParser());
 app.use(express.static("public"));
 
 app.use(cors({
