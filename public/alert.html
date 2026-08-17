@@ -580,7 +580,7 @@ async function speakTip(tip) {
 
   const text = parts.join(" ") + (tip.message ? `. ${tip.message}` : ".");
 
-  if (!(tip.convertedAmount >= 100)) return;
+  if (!(tip.convertedAmount >= 40)) return;
 
   try {
     const token = await getAzureToken();
