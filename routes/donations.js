@@ -438,4 +438,43 @@ router.post("/resetGoal", requireDashboardSession, async (req, res) => {
   }
 });
 
+router.post("/replayTip", requireDashboardSession, async (req, res) => {
+  try {
+    const { tipId } = req.body;
+
+    const tip = await Tips.findOne({
+      _id: tipId,
+      payment: true,
+    });
+
+    if (!tip) {
+      return res.status(404).json({
+        message: "Paid tip not found",
+      });
+    }
+
+    const donation = {
+      name: tip.name,
+      amount: tip.amount,
+      currency: tip.currency,
+      message: tip.message || "",
+      memeSound: tip.memeSound || null,
+      convertedAmount: tip.convertedAmount,
+    };
+
+    // Replay alert WITHOUT updating goal
+    await broadcastTip(donation, false);
+
+    return res.status(200).json({
+      message: "Tip replayed successfully",
+    });
+
+  } catch (error) {
+    console.error("Replay tip error:", error);
+
+    return res.status(500).json({
+      message: "Failed to replay tip",
+    });
+  }
+});
 export default router;

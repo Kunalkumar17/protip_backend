@@ -52,26 +52,33 @@ export const broadcast = (data) => {
 };
 
 
-export const broadcastTip = async (tip) => {
+export const broadcastTip = async (tip, updateGoal = true) => {
   const amount = Number(tip.convertedAmount) || 0;
 
   try {
-    let goal = await Goal.findOne();
+    // Only update the goal for real tips
+    if (updateGoal) {
+      let goal = await Goal.findOne();
 
-    // Safety: create a goal if one doesn't exist
-    if (!goal) {
-      goal = await Goal.create({
-        name: "Monthly Goal",
-        target: 10000,
-        total: 0,
+      // Safety: create a goal if one doesn't exist
+      if (!goal) {
+        goal = await Goal.create({
+          name: "Monthly Goal",
+          target: 10000,
+          total: 0,
+        });
+      }
+
+      goal.total += amount;
+      await goal.save();
+
+      broadcast({
+        type: "goalUpdate",
+        goal,
       });
     }
 
-    // Update total in MongoDB
-    goal.total += amount;
-
-    await goal.save();
-
+    // Always send the tip alert
     const alertMessage = {
       type: "tipAlert",
       name: tip.name || "Anonymous",
@@ -82,15 +89,9 @@ export const broadcastTip = async (tip) => {
       convertedAmount: amount,
     };
 
-    const goalMessage = {
-      type: "goalUpdate",
-      goal,
-    };
-
     broadcast(alertMessage);
-    broadcast(goalMessage);
 
   } catch (error) {
-    console.error("Failed to update goal:", error);
+    console.error("Failed to broadcast tip:", error);
   }
 };
