@@ -8,6 +8,7 @@ import cookieParser from "cookie-parser";
 
 import donationsRoutes from "./routes/donations.js";
 import { initWebSocket } from "./websocket.js"; // 👈 important
+import Tips from "./model/tips.js";
 
 const port = process.env.PORT || 3000;
 
