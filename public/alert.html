@@ -441,6 +441,12 @@ const MEME_SOUNDS = {
   vasteganahoeyin: "/sounds/vasteganahoeyin.mp3",
   ladkitumbhotboltiho: "/sounds/ladkitumbhotboltiho.mp3",
   meowghopghop: "/sounds/meowghopghop.mp3",
+  aisahaikya: "/sounds/aisahaikya.mp3",
+  alelele: "/sounds/alelele.mp3",
+  nanana: "/sounds/nanana.mp3",
+  heyprabhu: "/sounds/heyprabhu.mp3",
+  polsagyipols: "/sounds/polsagyipols.mp3",
+  takleff: "/sounds/takleff.mp3",
 };
 
 let currentMemeAudio = null;
@@ -454,7 +460,7 @@ function playMemeSound(soundId) {
 
   if (!soundPath) {
     console.error("Sound not found for ID:", soundId);
-    return;
+    return Promise.resolve();
   }
 
   if (currentMemeAudio) {
@@ -463,28 +469,32 @@ function playMemeSound(soundId) {
   }
 
   currentMemeAudio = new Audio(soundPath);
-
   currentMemeAudio.volume = 1;
 
-  currentMemeAudio.addEventListener("loadeddata", () => {
-    console.log("Audio loaded successfully:", soundPath);
-  });
+  return new Promise((resolve) => {
+    currentMemeAudio.onended = () => {
+      console.log("🔊 Sound finished");
+      resolve();
+    };
 
-  currentMemeAudio.addEventListener("error", () => {
-    console.error(
-      "Audio failed to load:",
-      soundPath,
-      currentMemeAudio.error
-    );
-  });
+    currentMemeAudio.onerror = () => {
+      console.error(
+        "Audio failed to load:",
+        soundPath,
+        currentMemeAudio.error
+      );
+      resolve();
+    };
 
-  currentMemeAudio.play()
-    .then(() => {
-      console.log("🔊 Sound playing");
-    })
-    .catch((error) => {
-      console.error("❌ Audio play failed:", error);
-    });
+    currentMemeAudio.play()
+      .then(() => {
+        console.log("🔊 Sound playing immediately");
+      })
+      .catch((error) => {
+        console.error("❌ Audio play failed:", error);
+        resolve();
+      });
+  });
 }
 
 
@@ -661,11 +671,6 @@ async function play(tip) {
 
   isPlaying = true;
 
-   if (tip.memeSound) {
-    playMemeSound(tip.memeSound);
-  }
-
-
   const symbol =
     getCurrencySymbol(tip.currency);
 
@@ -761,13 +766,18 @@ async function play(tip) {
 
 
   /*
-    TTS
+    SOUND FIRST, THEN TTS
 
-    Uncomment this if you want
-    the alert to wait for TTS.
+    The alert is shown immediately.
+    If this tip has a meme sound, wait only for
+    that sound to finish before starting TTS.
   */
 
-    await speakTip(tip);
+  if (tip.memeSound) {
+    await playMemeSound(tip.memeSound);
+  }
+
+  await speakTip(tip);
 
 
   /*
