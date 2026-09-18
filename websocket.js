@@ -1,84 +1,178 @@
 import { WebSocketServer } from "ws";
 import Goal from "./model/goal.js";
+import Streamer from "./model/streamer.js";
 
-let clients = [];
-
+const clients = new Map();
+// streamerId -> Set of WebSocket clients
 
 export const initWebSocket = (server) => {
   const wss = new WebSocketServer({ server });
 
-  wss.on("connection", async (ws) => {
+  wss.on("connection", async (ws, req) => {
     console.log("WS client connected");
 
-    clients.push(ws);
+        const url = new URL(
+      req.url,
+      `http://${req.headers.host}`
+    );
+
+    const streamerSlug =
+      url.searchParams
+        .get("streamer")
+        ?.toLowerCase()
+        .trim();
+
+    if (!streamerSlug) {
+      console.log(
+        "WS connection rejected: no streamer"
+      );
+
+      ws.close();
+      return;
+    }
+
+    const streamer = await Streamer.findOne({
+      username: streamerSlug,
+    });
+
+    if (!streamer) {
+      console.log(
+        `WS connection rejected: streamer not found: ${streamerSlug}`
+      );
+
+      ws.close();
+      return;
+    }
+
+    const streamerId = streamer._id.toString();
+
+    // Create a client set for this streamer
+    if (!clients.has(streamerId)) {
+      clients.set(streamerId, new Set());
+    }
+
+    clients.get(streamerId).add(ws);
+
+    console.log(`WS client connected for streamer: ${streamerId}`);
 
     try {
-      let goal = await Goal.findOne();
+      const goal = await Goal.findOne({ streamerId });
 
-      // Create default goal if none exists
-      if (!goal) {
-        goal = await Goal.create({
-          name: "Monthly Goal",
-          target: 10000,
-          total: 0,
-        });
+      if (goal) {
+        ws.send(
+          JSON.stringify({
+            type: "goalInit",
+            goal,
+          })
+        );
       }
-
-      ws.send(
-        JSON.stringify({
-          type: "goalInit",
-          goal,
-        })
-      );
     } catch (error) {
       console.error("Failed to get goal:", error);
     }
 
     ws.on("close", () => {
-      clients = clients.filter((client) => client !== ws);
+      const streamerClients = clients.get(streamerId);
 
-      console.log("WS client disconnected");
+      if (streamerClients) {
+        streamerClients.delete(ws);
+
+        if (streamerClients.size === 0) {
+          clients.delete(streamerId);
+        }
+      }
+
+      console.log(`WS client disconnected: ${streamerId}`);
     });
   });
 };
 
+export const broadcast = (data, streamerId) => {
+  const id = streamerId?.toString();
 
-export const broadcast = (data) => {
-  clients.forEach((client) => {
+  console.log("📡 BROADCAST:", {
+    type: data.type,
+    streamerId: id,
+    clients: clients.get(id)?.size || 0,
+  });
+
+  if (!id) {
+    console.log("❌ Broadcast skipped: no streamerId");
+    return;
+  }
+
+  const streamerClients = clients.get(id);
+
+  if (!streamerClients) {
+    console.log("❌ No clients for streamer:", id);
+    return;
+  }
+
+  streamerClients.forEach((client) => {
     if (client.readyState === 1) {
+      console.log("📤 Sending", data.type, "to client");
       client.send(JSON.stringify(data));
     }
   });
 };
 
+export const broadcastTip = async (
+  streamerId,
+  tip,
+  updateGoal = true
+) => {
+  streamerId = streamerId?.toString();
+  if (!streamerId) {
+    console.log("❌ Broadcast tip skipped: no streamerId");
+    return;
+  }
 
-export const broadcastTip = async (tip, updateGoal = true) => {
   const amount = Number(tip.convertedAmount) || 0;
 
-  try {
-    // Only update the goal for real tips
-    if (updateGoal) {
-      let goal = await Goal.findOne();
+  console.log("💰 Broadcasting tip:", {
+    streamerId,
+    name: tip.name,
+    amount: tip.amount,
+    currency: tip.currency,
+    message: tip.message,
+    memeSound: tip.memeSound,
+  });
 
-      // Safety: create a goal if one doesn't exist
-      if (!goal) {
-        goal = await Goal.create({
-          name: "Monthly Goal",
-          target: 10000,
-          total: 0,
-        });
+  // =========================
+  // UPDATE GOAL
+  // =========================
+
+  if (updateGoal) {
+    try {
+      const goal = await Goal.findOne({ streamerId });
+
+      if (goal) {
+        goal.total += amount;
+        await goal.save();
+
+        console.log("🎯 Goal updated:", goal.total);
+
+        broadcast(
+          {
+            type: "goalUpdate",
+            goal,
+          },
+          streamerId
+        );
+      } else {
+        console.log("ℹ️ No goal found for streamer:", streamerId);
       }
-
-      goal.total += amount;
-      await goal.save();
-
-      broadcast({
-        type: "goalUpdate",
-        goal,
-      });
+    } catch (error) {
+      // IMPORTANT:
+      // Goal failure should NOT prevent the tip alert.
+      console.error("❌ Goal update failed:", error);
     }
+  }
 
-    // Always send the tip alert
+  // =========================
+  // SEND TIP ALERT
+  // =========================
+
+  try {
     const alertMessage = {
       type: "tipAlert",
       name: tip.name || "Anonymous",
@@ -89,9 +183,12 @@ export const broadcastTip = async (tip, updateGoal = true) => {
       convertedAmount: amount,
     };
 
-    broadcast(alertMessage);
+    console.log("🚨 Sending tipAlert to streamer:", streamerId);
 
+    broadcast(alertMessage, streamerId);
+
+    console.log("✅ tipAlert broadcast complete");
   } catch (error) {
-    console.error("Failed to broadcast tip:", error);
+    console.error("❌ Tip alert broadcast failed:", error);
   }
 };

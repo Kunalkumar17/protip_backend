@@ -2,6 +2,14 @@ import mongoose from "mongoose";
 
 const goalSchema = new mongoose.Schema(
   {
+    streamerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Streamer",
+      required: true,
+      unique: true,
+      index: true,
+    },
+
     name: {
       type: String,
       default: "Monthly Goal",
@@ -15,6 +23,13 @@ const goalSchema = new mongoose.Schema(
     total: {
       type: Number,
       default: 0,
+    },
+
+    channelName: {
+      type: String,
+      required: true,
+      lowercase: true,
+      trim: true,
     },
   },
   {

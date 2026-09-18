@@ -7,6 +7,7 @@ import cron from "node-cron";
 import cookieParser from "cookie-parser";
 
 import donationsRoutes from "./routes/donations.js";
+import authRoutes from "./routes/auth.js";
 import { initWebSocket } from "./websocket.js"; // 👈 important
 import Tips from "./model/tips.js";
 
@@ -25,6 +26,7 @@ app.use(cors({
   credentials: true
 }));
 
+app.use("/auth", authRoutes);
 app.use("/donations", donationsRoutes);
 
 // create HTTP server
