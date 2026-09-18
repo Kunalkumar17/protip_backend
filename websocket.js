@@ -1,138 +1,53 @@
 import { WebSocketServer } from "ws";
-import jwt from "jsonwebtoken";
 import Goal from "./model/goal.js";
-import { sessionSecret } from "./middleware/auth.js"; // adjust path if needed
+import Streamer from "./model/streamer.js";
 
 const clients = new Map();
 // streamerId -> Set<WebSocket>
-
-const getCookie = (cookieHeader, name) => {
-  if (!cookieHeader) return null;
-
-  const cookies = cookieHeader.split(";");
-
-  for (const cookie of cookies) {
-    const [key, ...value] = cookie.trim().split("=");
-
-    if (key === name) {
-      return decodeURIComponent(value.join("="));
-    }
-  }
-
-  return null;
-};
 
 export const initWebSocket = (server) => {
   const wss = new WebSocketServer({ server });
 
   wss.on("connection", async (ws, req) => {
-    console.log("🔌 WS client connecting...");
+  console.log("WS client connected");
 
-    try {
-      // =========================
-      // GET SESSION COOKIE
-      // =========================
+  const url = new URL(
+    req.url,
+    `http://${req.headers.host}`
+  );
 
-      const token = getCookie(
-        req.headers.cookie,
-        "dashboardSession"
-      );
+  const streamerSlug = url.searchParams
+    .get("streamer")
+    ?.toLowerCase()
+    .trim();
 
-      if (!token) {
-        console.log("❌ WS rejected: no dashboard session");
-        ws.close(1008, "Unauthorized");
-        return;
-      }
+  if (!streamerSlug) {
+    console.log("WS connection rejected: no streamer");
+    ws.close();
+    return;
+  }
 
-      // =========================
-      // VERIFY JWT
-      // =========================
+  console.log("🔎 WS streamer slug:", streamerSlug);
 
-      const payload = jwt.verify(
-        token,
-        sessionSecret()
-      );
-
-      if (!payload.streamerId) {
-        console.log("❌ WS rejected: no streamerId");
-        ws.close(1008, "Unauthorized");
-        return;
-      }
-
-      const streamerId = payload.streamerId.toString();
-
-      console.log(
-        "✅ WS authenticated for streamer:",
-        streamerId
-      );
-
-      // =========================
-      // REGISTER CLIENT
-      // =========================
-
-      if (!clients.has(streamerId)) {
-        clients.set(streamerId, new Set());
-      }
-
-      clients.get(streamerId).add(ws);
-
-      console.log(
-        `📡 WS client registered for streamer ${streamerId}`
-      );
-
-      // =========================
-      // SEND CURRENT GOAL
-      // =========================
-
-      try {
-        const goal = await Goal.findOne({
-          streamerId,
-        });
-
-        if (goal && ws.readyState === 1) {
-          ws.send(
-            JSON.stringify({
-              type: "goalInit",
-              goal,
-            })
-          );
-        }
-      } catch (error) {
-        console.error(
-          "❌ Failed to get goal:",
-          error
-        );
-      }
-
-      // =========================
-      // DISCONNECT
-      // =========================
-
-      ws.on("close", () => {
-        const streamerClients = clients.get(streamerId);
-
-        if (streamerClients) {
-          streamerClients.delete(ws);
-
-          if (streamerClients.size === 0) {
-            clients.delete(streamerId);
-          }
-        }
-
-        console.log(
-          `🔌 WS client disconnected: ${streamerId}`
-        );
-      });
-
-    } catch (error) {
-      console.error(
-        "❌ WS authentication failed:",
-        error.message
-      );
-
-      ws.close(1008, "Unauthorized");
-    }
+  const streamer = await Streamer.findOne({
+    username: {
+      $regex: `^${streamerSlug}$`,
+      $options: "i",
+    },
   });
+
+  if (!streamer) {
+    console.log(
+      `WS connection rejected: streamer not found: ${streamerSlug}`
+    );
+    ws.close();
+    return;
+  }
+
+  const streamerId = streamer._id.toString();
+
+  // ...
+});
 };
 
 export const broadcast = (data, streamerId) => {
