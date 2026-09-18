@@ -8,7 +8,7 @@ const clients = new Map();
 export const initWebSocket = (server) => {
   const wss = new WebSocketServer({ server });
 
-  wss.on("connection", async (ws, req) => {
+ wss.on("connection", async (ws, req) => {
   console.log("WS client connected");
 
   const url = new URL(
@@ -46,7 +46,48 @@ export const initWebSocket = (server) => {
 
   const streamerId = streamer._id.toString();
 
-  // ...
+  if (!clients.has(streamerId)) {
+    clients.set(streamerId, new Set());
+  }
+
+  clients.get(streamerId).add(ws);
+
+  console.log("✅ WS client registered:", {
+    streamerSlug,
+    streamerId,
+    clients: clients.get(streamerId).size,
+  });
+
+  try {
+    const goal = await Goal.findOne({ streamerId });
+
+    if (goal && ws.readyState === 1) {
+      ws.send(
+        JSON.stringify({
+          type: "goalInit",
+          goal,
+        })
+      );
+    }
+  } catch (error) {
+    console.error("Failed to get goal:", error);
+  }
+
+  ws.on("close", () => {
+    const streamerClients = clients.get(streamerId);
+
+    if (streamerClients) {
+      streamerClients.delete(ws);
+
+      if (streamerClients.size === 0) {
+        clients.delete(streamerId);
+      }
+    }
+
+    console.log(
+      `🔌 WS client disconnected: ${streamerId}`
+    );
+  });
 });
 };
 
