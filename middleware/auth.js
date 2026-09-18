@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 const isProd = process.env.NODE_ENV !== "development";
 
 export const sessionSecret = () =>
-  process.env.JWT_SECRET || process.env.GOAL_SESSION_SECRET;
+  process.env.JWT_SECRET
 
 export const cookieOptions = {
   httpOnly: true,
