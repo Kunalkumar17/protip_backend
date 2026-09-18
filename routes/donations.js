@@ -38,114 +38,6 @@ const paymentLimiter = rateLimit({
   }
 });
 
-router.use(apiLimiter);
-
-async function convertToINR(amount, currency) {
-  const base = currency.toUpperCase();
-
-  if (base === "INR") {
-    return Number(amount);
-  }
-
-  try {
-    const response = await fetch(
-      `https://api.frankfurter.dev/v2/rate/${base}/INR`
-    );
-
-    if (!response.ok) {
-      throw new Error(
-        `Could not get ${base}/INR exchange rate`
-      );
-    }
-
-    const data = await response.json();
-
-    return Number(amount) * Number(data.rate);
-
-  } catch (error) {
-    console.error(
-      `Currency conversion failed for ${amount} ${base}:`,
-      error.message
-    );
-
-    return null;
-  }
-}
-
-  router.post("/verifyRazorpay",paymentLimiter, async (req, res) => {
-  const {
-    razorpay_order_id,
-    razorpay_payment_id,
-    razorpay_signature
-  } = req.body;
-
-  try {
-    const sign = razorpay_order_id + "|" + razorpay_payment_id;
-
-    const expectedSignature = crypto
-      .createHmac("sha256", process.env.RAZOR_SECRET_KEY)
-      .update(sign)
-      .digest("hex");
-
-    if (expectedSignature !== razorpay_signature) {
-      return res.status(400).json({ message: "Invalid signature" });
-    }
-
-    // Signature valid → payment is real
-    // Signature valid → payment is real
-const order =
-  await razorpayInstance.orders.fetch(
-    razorpay_order_id
-  );
-
-const tip =
-  await Tips.findById(order.receipt);
-
-if (!tip) {
-  return res.status(404).json({
-    message: "Tip not found"
-  });
-}
-
-
-// Convert to INR for leaderboard
-const convertedAmount =
-  await convertToINR(
-    tip.amount,
-    tip.currency
-  );
-
-
-await Tips.findByIdAndUpdate(
-  order.receipt,
-  {
-    payment: true,
-    convertedAmount
-  }
-);
-
-
-// Send original currency to overlay
-const donation = {
-  name: tip.name,
-  amount: tip.amount,
-  currency: tip.currency,
-  message: tip.message || "",
-  memeSound: tip.memeSound || null,
-  convertedAmount,
-  streamerId: tip.streamerId
-};
-
-broadcastTip(donation.streamerId, donation);
-
-    return res.status(201).json({ message: "Payment verified" });
-
-  } catch (error) {
-    console.error("Verification error:", error);
-    return res.status(500).json({ message: error.message });
-  }
-});
-
 router.post("/webhook", async (req, res) => {
   try {
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
@@ -393,55 +285,169 @@ router.post("/webhook", async (req, res) => {
 });
 
 
+router.use(apiLimiter);
 
-  router.post("/razorpay", paymentLimiter, async (req, res) => {
+async function convertToINR(amount, currency) {
+  const base = currency.toUpperCase();
 
-  const {
-  name,
-  amount,
-  message,
-  memeSound,
-  currency,
-   streamer
-} = req.body;
-   
-
-  if (!name || !amount) {
-    return res.status(400).json({ error: "Invalid donation data" });
+  if (base === "INR") {
+    return Number(amount);
   }
 
-  const streamerAccount = await Streamer.findOne({
-    username: String(streamer).toLowerCase().trim(),
-  });
+  try {
+    const response = await fetch(
+      `https://api.frankfurter.dev/v2/rate/${base}/INR`
+    );
 
-  console.log("Streamer account:", streamerAccount);
+    if (!response.ok) {
+      throw new Error(
+        `Could not get ${base}/INR exchange rate`
+      );
+    }
+
+    const data = await response.json();
+
+    return Number(amount) * Number(data.rate);
+
+  } catch (error) {
+    console.error(
+      `Currency conversion failed for ${amount} ${base}:`,
+      error.message
+    );
+
+    return null;
+  }
+}
+
+  router.post("/verifyRazorpay",paymentLimiter, async (req, res) => {
+  const {
+    razorpay_order_id,
+    razorpay_payment_id,
+    razorpay_signature
+  } = req.body;
 
   try {
-     const newTip = new Tips({
+    const sign = razorpay_order_id + "|" + razorpay_payment_id;
+
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZOR_SECRET_KEY)
+      .update(sign)
+      .digest("hex");
+
+    if (expectedSignature !== razorpay_signature) {
+      return res.status(400).json({ message: "Invalid signature" });
+    }
+
+    // Signature valid → payment is real
+    // Signature valid → payment is real
+const order =
+  await razorpayInstance.orders.fetch(
+    razorpay_order_id
+  );
+
+const tip =
+  await Tips.findById(order.receipt);
+
+if (!tip) {
+  return res.status(404).json({
+    message: "Tip not found"
+  });
+}
+
+
+// Convert to INR for leaderboard
+const convertedAmount =
+  await convertToINR(
+    tip.amount,
+    tip.currency
+  );
+
+
+await Tips.findByIdAndUpdate(
+  order.receipt,
+  {
+    payment: true,
+    convertedAmount
+  }
+);
+
+
+// Send original currency to overlay
+const donation = {
+  name: tip.name,
+  amount: tip.amount,
+  currency: tip.currency,
+  message: tip.message || "",
+  memeSound: tip.memeSound || null,
+  convertedAmount,
+  streamerId: tip.streamerId
+};
+
+broadcastTip(donation.streamerId, donation);
+
+    return res.status(201).json({ message: "Payment verified" });
+
+  } catch (error) {
+    console.error("Verification error:", error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+
+  router.post("/razorpay", paymentLimiter, async (req, res) => {
+  try {
+    const {
+      name,
+      amount,
+      message,
+      memeSound,
+      currency,
+      streamer,
+    } = req.body;
+
+    if (!name || !amount || !currency || !streamer) {
+      return res.status(400).json({
+        message: "Invalid donation data",
+      });
+    }
+
+    const streamerAccount = await Streamer.findOne({
+      username: String(streamer).toLowerCase().trim(),
+    });
+
+    if (!streamerAccount) {
+      return res.status(404).json({
+        message: "Streamer not found",
+      });
+    }
+
+    const newTip = new Tips({
       streamerId: streamerAccount._id,
       name,
       amount,
       message: message || "",
       memeSound: memeSound || null,
-      currency,
+      currency: String(currency).toLowerCase(),
       payment: false,
     });
 
     await newTip.save();
 
     const options = {
-      amount: amount * 100,
+      amount: Math.round(Number(amount) * 100),
       currency,
-      receipt: newTip._id.toString()
+      receipt: newTip._id.toString(),
     };
 
     const order = await razorpayInstance.orders.create(options);
 
     return res.status(201).json(order);
-
   } catch (error) {
     console.error("Error placing order:", error);
-    return res.status(500).json({ message: error.message });
+
+    return res.status(500).json({
+      message: error.message,
+    });
   }
 });
 
