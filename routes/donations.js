@@ -13,8 +13,8 @@
   
 
   const razorpayInstance = new Razorpay({
-    key_id: process.env.RAZOR_KEY_ID,
-    key_secret: process.env.RAZOR_SECRET_KEY
+    key_id: process.env.BERRY_RAZOR_KEY_ID,
+    key_secret: process.env.BERRY_RAZOR_SECRET_KEY
 })
 
 const apiLimiter = rateLimit({
