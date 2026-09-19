@@ -26,6 +26,20 @@ const streamerSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+
+    emailVerificationToken: {
+      type: String,
+      default: null,
+    },
+
+    emailVerificationExpires: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
