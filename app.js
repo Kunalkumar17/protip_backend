@@ -22,6 +22,7 @@ app.use(cookieParser());
 app.use(express.static("public"));
 
 console.log("CORS allowed origin:", process.env.USER_FRONTEND_URL);
+console.log("cwd:", process.cwd());
 
 app.use(cors({
   origin: [process.env.USER_FRONTEND_URL],

@@ -106,7 +106,7 @@ router.post("/register", authLimiter, async (req, res) => {
 
     // URL that the user receives in their email
     const verificationUrl =
-      `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
+      `${process.env.USER_FRONTEND_URL}/verify-email?token=${verificationToken}`;
 
     // Send verification email
     await sendVerificationEmail(email, verificationUrl);
