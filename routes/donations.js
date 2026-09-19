@@ -7,14 +7,15 @@
   import rateLimit from "express-rate-limit";
   import { requireAuth } from "../middleware/auth.js";
   import Streamer from "../model/streamer.js";
+  import { convertToINR } from "../utils/currency.js";
 
 
   const router = express.Router();
   
 
   const razorpayInstance = new Razorpay({
-    key_id: process.env.BERRY_RAZOR_KEY_ID,
-    key_secret: process.env.BERRY_RAZOR_SECRET_KEY
+    key_id: process.env.RAZOR_KEY_ID,
+    key_secret: process.env.RAZOR_SECRET_KEY
 })
 
 const apiLimiter = rateLimit({
@@ -286,38 +287,6 @@ router.post("/webhook", async (req, res) => {
 
 
 router.use(apiLimiter);
-
-async function convertToINR(amount, currency) {
-  const base = currency.toUpperCase();
-
-  if (base === "INR") {
-    return Number(amount);
-  }
-
-  try {
-    const response = await fetch(
-      `https://api.frankfurter.dev/v2/rate/${base}/INR`
-    );
-
-    if (!response.ok) {
-      throw new Error(
-        `Could not get ${base}/INR exchange rate`
-      );
-    }
-
-    const data = await response.json();
-
-    return Number(amount) * Number(data.rate);
-
-  } catch (error) {
-    console.error(
-      `Currency conversion failed for ${amount} ${base}:`,
-      error.message
-    );
-
-    return null;
-  }
-}
 
   router.post("/verifyRazorpay",paymentLimiter, async (req, res) => {
   const {
