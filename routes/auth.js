@@ -11,6 +11,8 @@ import {
 } from "../middleware/auth.js";
  import crypto from "crypto";
 import { sendVerificationEmail } from "../utils/email.js";
+import Tips from "../model/tips.js";
+import mongoose from "mongoose";
 
 const router = express.Router();
 
@@ -239,6 +241,184 @@ router.get("/verify-email", async (req, res) => {
 
     return res.status(500).json({
       message: "Could not verify email",
+    });
+  }
+});
+
+router.patch("/upi", requireAuth, async (req, res) => {
+  try {
+    const { upiId } = req.body;
+
+    if (!upiId || !upiId.trim()) {
+      return res.status(400).json({
+        message: "UPI ID is required",
+      });
+    }
+
+    const normalizedUpi = upiId
+      .trim()
+      .toLowerCase();
+
+    // Basic UPI format validation
+    const upiRegex = /^[a-zA-Z0-9._-]{2,}@[a-zA-Z0-9.-]+$/;
+
+    if (!upiRegex.test(normalizedUpi)) {
+      return res.status(400).json({
+        message: "Invalid UPI ID",
+      });
+    }
+
+    const streamer = await Streamer.findByIdAndUpdate(
+      req.streamer.streamerId,
+      {
+        $set: {
+          upiId: normalizedUpi,
+        },
+      },
+      {
+        new: true,
+      }
+    ).select("-password -emailVerificationToken");
+
+    if (!streamer) {
+      return res.status(404).json({
+        message: "Streamer not found",
+      });
+    }
+
+    res.json({
+      message: "UPI ID updated successfully",
+      upiId: streamer.upiId,
+    });
+  } catch (error) {
+    console.error("UPI update error:", error);
+
+    res.status(500).json({
+      message: "Failed to update UPI ID",
+    });
+  }
+});
+
+router.get("/monthly-payout", requireAuth, async (req, res) => {
+  try {
+    const now = new Date();
+
+    const year =
+      Number(req.query.year) || now.getFullYear();
+
+    const month =
+      Number(req.query.month) || now.getMonth() + 1;
+
+
+    const start = new Date(
+      year,
+      month - 1,
+      1
+    );
+
+    const end = new Date(
+      year,
+      month,
+      1
+    );
+
+    const result = await Tips.aggregate([
+      {
+        $match: {
+          streamerId: new mongoose.Types.ObjectId(req.streamer.streamerId),
+          payment: true,
+          createdAt: {
+            $gte: start,
+            $lt: end,
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+
+          totalTips: {
+            $sum: 1,
+          },
+
+          grossAmount: {
+            $sum: "$convertedAmount",
+          },
+        },
+      },
+    ]);
+
+
+    const grossAmount =
+      result[0]?.grossAmount || 0;
+
+    const totalTips =
+      result[0]?.totalTips || 0;
+
+    const razorpayRate =
+      Number(process.env.RAZORPAY_FEE_PERCENT || 2);
+
+    const razorpayGstRate =
+      Number(
+        process.env.RAZORPAY_FEE_GST_PERCENT || 18
+      );
+
+    const platformRate =
+      Number(
+        process.env.PLATFORM_FEE_PERCENT || 8
+      );
+
+    const razorpayFee =
+      grossAmount * (razorpayRate / 100);
+
+    const razorpayGst =
+      razorpayFee * (razorpayGstRate / 100);
+
+    const platformFee =
+      grossAmount * (platformRate / 100);
+
+    const netAmount =
+      grossAmount -
+      razorpayFee -
+      razorpayGst -
+      platformFee;
+
+
+    const streamer = await Streamer.findById(
+      req.streamer.streamerId
+    ).select("upiId");
+
+    res.json({
+      month,
+      year,
+
+      totalTips,
+
+      grossAmount,
+
+      razorpayFee,
+      razorpayGst,
+
+      platformFee,
+
+      netAmount,
+
+      upiId: streamer?.upiId || "",
+
+      rates: {
+        razorpay: razorpayRate,
+        razorpayGst: razorpayGstRate,
+        platform: platformRate,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "Monthly payout error:",
+      error
+    );
+
+    res.status(500).json({
+      message: "Failed to calculate monthly payout",
     });
   }
 });

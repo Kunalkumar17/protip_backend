@@ -11,6 +11,7 @@ import authRoutes from "./routes/auth.js";
 import { initWebSocket } from "./websocket.js"; // 👈 important
 import Tips from "./model/tips.js";
 import berryDonationRoutes from "./routes/berry_donation.js";
+import adminRoutes from "./routes/admin.js";
 
 const port = process.env.PORT || 3000;
 
@@ -33,6 +34,7 @@ app.use(cors({
 app.use("/auth", authRoutes);
 app.use("/donations", donationsRoutes);
 app.use("/berry-donations", berryDonationRoutes);
+app.use("/admin", adminRoutes);
 
 // create HTTP server
 const server = http.createServer(app);

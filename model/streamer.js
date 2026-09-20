@@ -40,6 +40,12 @@ const streamerSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    upiId: {
+    type: String,
+    default: "",
+    trim: true,
+    lowercase: true,
+    },
   },
   {
     timestamps: true,
