@@ -165,6 +165,7 @@ router.post("/webhook", async (req, res) => {
       );
 
       return res.status(200).json({
+        success: true,
         message: "Payment already processed"
       });
     }
@@ -236,6 +237,7 @@ router.post("/webhook", async (req, res) => {
       );
 
       return res.status(200).json({
+        success: true,
         message: "Payment already processed"
       });
     }
@@ -269,6 +271,7 @@ router.post("/webhook", async (req, res) => {
     );
 
     return res.status(200).json({
+      success: true,
       message: "Payment recorded successfully"
     });
 
@@ -332,29 +335,53 @@ const convertedAmount =
   );
 
 
-await Tips.findByIdAndUpdate(
-  order.receipt,
+const updatedTip = await Tips.findOneAndUpdate(
   {
-    payment: true,
-    convertedAmount
+    _id: order.receipt,
+    payment: false,
+  },
+  {
+    $set: {
+      payment: true,
+      convertedAmount,
+    },
+  },
+  {
+    new: true,
   }
 );
 
+if (!updatedTip) {
+  console.log(
+    "Payment already processed:",
+    order.receipt
+  );
 
-// Send original currency to overlay
+  return res.status(200).json({
+    success: true,
+    message: "Payment already processed",
+  });
+}
+
 const donation = {
-  name: tip.name,
-  amount: tip.amount,
-  currency: tip.currency,
-  message: tip.message || "",
-  memeSound: tip.memeSound || null,
-  convertedAmount,
-  streamerId: tip.streamerId
+  name: updatedTip.name,
+  amount: updatedTip.amount,
+  currency: updatedTip.currency,
+  message: updatedTip.message || "",
+  memeSound: updatedTip.memeSound || null,
+  convertedAmount: updatedTip.convertedAmount,
+  streamerId: updatedTip.streamerId,
 };
 
-broadcastTip(donation.streamerId, donation);
+broadcastTip(
+  donation.streamerId,
+  donation
+);
 
-    return res.status(201).json({ message: "Payment verified" });
+return res.status(200).json({
+  success: true,
+  message: "Payment verified",
+});
 
   } catch (error) {
     console.error("Verification error:", error);

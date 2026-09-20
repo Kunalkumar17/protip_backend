@@ -145,6 +145,7 @@ router.post("/webhook", async (req, res) => {
       );
 
       return res.status(200).json({
+        success: true,
         message: "Payment already processed"
       });
     }
@@ -216,6 +217,7 @@ router.post("/webhook", async (req, res) => {
       );
 
       return res.status(200).json({
+        success: true,
         message: "Payment already processed"
       });
     }
@@ -249,6 +251,7 @@ router.post("/webhook", async (req, res) => {
     );
 
     return res.status(200).json({
+      success: true,
       message: "Payment recorded successfully"
     });
 
@@ -402,6 +405,7 @@ if (!updatedTip) {
   );
 
   return res.status(200).json({
+    success: true,
     message: "Payment already processed",
   });
 }
@@ -426,7 +430,8 @@ console.log(
   updatedTip._id
 );
 
-return res.status(201).json({
+return res.status(200).json({
+  success: true,
   message: "Payment verified",
 });
 
