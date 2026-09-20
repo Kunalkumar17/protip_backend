@@ -19,6 +19,253 @@ const razorpayInstance = new Razorpay({
   key_secret: process.env.BERRY_RAZOR_SECRET_KEY,
 });
 
+router.post("/webhook", async (req, res) => {
+  try {
+    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    const webhookSignature = req.headers["x-razorpay-signature"];
+
+    if (!webhookSecret) {
+      console.error("RAZORPAY_WEBHOOK_SECRET is missing");
+      return res.status(500).json({
+        message: "Webhook secret is not configured"
+      });
+    }
+
+    if (!webhookSignature) {
+      return res.status(400).json({
+        message: "Missing webhook signature"
+      });
+    }
+
+    if (!req.rawBody) {
+      console.error("Raw webhook body is missing");
+
+      return res.status(400).json({
+        message: "Raw webhook body is required"
+      });
+    }
+
+    // Verify Razorpay webhook signature
+    const expectedSignature = crypto
+      .createHmac("sha256", webhookSecret)
+      .update(req.rawBody)
+      .digest("hex");
+
+    if (expectedSignature !== webhookSignature) {
+      console.error("Invalid Razorpay webhook signature");
+
+      return res.status(400).json({
+        message: "Invalid webhook signature"
+      });
+    }
+
+    const event = req.body;
+
+    console.log("Razorpay webhook received:", event.event);
+
+    // Only process successful payments
+    if (
+      event.event !== "payment.captured" &&
+      event.event !== "order.paid"
+    ) {
+      return res.status(200).json({
+        message: "Event ignored"
+      });
+    }
+
+    const paymentEntity =
+      event.payload?.payment?.entity;
+
+    const orderEntity =
+      event.payload?.order?.entity;
+
+    const paymentId =
+      paymentEntity?.id;
+
+    const orderId =
+      paymentEntity?.order_id ||
+      orderEntity?.id;
+
+    if (!paymentId || !orderId) {
+      console.error("Webhook missing payment/order ID");
+
+      return res.status(400).json({
+        message: "Missing payment/order information"
+      });
+    }
+
+    // Get the order from Razorpay
+    const order =
+      await razorpayInstance.orders.fetch(orderId);
+
+    if (!order.receipt) {
+      console.error("Order has no receipt:", orderId);
+
+      return res.status(400).json({
+        message: "Order has no receipt"
+      });
+    }
+
+    // Get the actual payment
+    const payment =
+      await razorpayInstance.payments.fetch(paymentId);
+
+    if (payment.status !== "captured") {
+      console.log(
+        "Webhook payment not captured:",
+        paymentId,
+        payment.status
+      );
+
+      return res.status(200).json({
+        message: "Payment not captured"
+      });
+    }
+
+    // Find our tip
+    const tip =
+      await Tips.findById(order.receipt);
+
+    if (!tip) {
+      console.error(
+        "Tip not found:",
+        order.receipt
+      );
+
+      return res.status(404).json({
+        message: "Tip not found"
+      });
+    }
+
+    // Already processed
+    if (tip.payment === true) {
+      console.log(
+        "Webhook: tip already processed:",
+        tip._id.toString()
+      );
+
+      return res.status(200).json({
+        message: "Payment already processed"
+      });
+    }
+
+    // Verify amount
+    const expectedAmount =
+      Math.round(Number(tip.amount) * 100);
+
+    if (Number(payment.amount) !== expectedAmount) {
+      console.error("Webhook amount mismatch");
+
+      return res.status(400).json({
+        message: "Payment amount does not match tip"
+      });
+    }
+
+    // Verify currency
+    if (
+      payment.currency &&
+      tip.currency &&
+      payment.currency.toUpperCase() !==
+        tip.currency.toUpperCase()
+    ) {
+      console.error("Webhook currency mismatch");
+
+      return res.status(400).json({
+        message: "Payment currency does not match tip"
+      });
+    }
+
+    // Convert to INR
+    const convertedAmount =
+      await convertToINR(
+        tip.amount,
+        tip.currency
+      );
+
+    if (convertedAmount === null) {
+      return res.status(500).json({
+        message: "Could not convert payment amount to INR"
+      });
+    }
+
+    // IMPORTANT:
+    // Atomically mark payment as completed.
+    // This prevents the webhook and frontend verification
+    // from triggering two alerts.
+    const updatedTip =
+      await Tips.findOneAndUpdate(
+        {
+          _id: tip._id,
+          payment: false
+        },
+        {
+          $set: {
+            payment: true,
+            convertedAmount
+          }
+        },
+        {
+          new: true
+        }
+      );
+
+    if (!updatedTip) {
+      console.log(
+        "Webhook: payment already claimed:",
+        tip._id.toString()
+      );
+
+      return res.status(200).json({
+        message: "Payment already processed"
+      });
+    }
+
+    // Send alert to OBS
+    const donation = {
+      name: updatedTip.name,
+      amount: updatedTip.amount,
+      currency: updatedTip.currency,
+      message: updatedTip.message || "",
+      memeSound: updatedTip.memeSound || null,
+      convertedAmount,
+      streamerId: updatedTip.streamerId,
+    };
+
+    try {
+      broadcastTip(
+      donation.streamerId,
+      donation
+    );
+    } catch (broadcastError) {
+      console.error(
+        "Payment recorded but OBS broadcast failed:",
+        broadcastError
+      );
+    }
+
+    console.log(
+      "Webhook payment recorded:",
+      updatedTip._id.toString()
+    );
+
+    return res.status(200).json({
+      message: "Payment recorded successfully"
+    });
+
+  } catch (error) {
+    console.error(
+      "Razorpay webhook error:",
+      error
+    );
+
+    // 500 tells Razorpay to retry
+    return res.status(500).json({
+      message: error.message
+    });
+  }
+});
+
+
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 100,
@@ -122,42 +369,66 @@ router.post("/verifyRazorpay", paymentLimiter, async (req, res) => {
     }
 
         const convertedAmount = await convertToINR(
-    tip.amount,
-    tip.currency
-    );
+  tip.amount,
+  tip.currency
+);
 
-    await Tips.findByIdAndUpdate(
-    tip._id,
-    {
-        payment: true,
-        convertedAmount,
-    }
-    );
+if (convertedAmount === null) {
+  return res.status(500).json({
+    message: "Could not convert payment amount to INR",
+  });
+}
 
-    // Send tip to OBS / WebSocket
-    const donation = {
-      name: tip.name,
-      amount: tip.amount,
-      currency: tip.currency,
-      message: tip.message || "",
-      memeSound: tip.memeSound || null,
+const updatedTip = await Tips.findOneAndUpdate(
+  {
+    _id: tip._id,
+    payment: false,
+  },
+  {
+    $set: {
+      payment: true,
       convertedAmount,
-      streamerId: tip.streamerId,
-    };
+    },
+  },
+  {
+    new: true,
+  }
+);
 
-    broadcastTip(
-      donation.streamerId,
-      donation
-    );
+if (!updatedTip) {
+  console.log(
+    "🍓 Berry payment already processed:",
+    tip._id.toString()
+  );
 
-    console.log(
-      "🍓 Berry tip successfully processed:",
-      tip._id
-    );
+  return res.status(200).json({
+    message: "Payment already processed",
+  });
+}
 
-    return res.status(201).json({
-      message: "Payment verified",
-    });
+const donation = {
+  name: updatedTip.name,
+  amount: updatedTip.amount,
+  currency: updatedTip.currency,
+  message: updatedTip.message || "",
+  memeSound: updatedTip.memeSound || null,
+  convertedAmount,
+  streamerId: updatedTip.streamerId,
+};
+
+broadcastTip(
+  donation.streamerId,
+  donation
+);
+
+console.log(
+  "🍓 Berry tip successfully processed:",
+  updatedTip._id
+);
+
+return res.status(201).json({
+  message: "Payment verified",
+});
 
   } catch (error) {
     console.error(
