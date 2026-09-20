@@ -19,7 +19,13 @@ const app = express();
 
 app.set("trust proxy", 1);
 
-app.use(express.json());
+app.use(
+  express.json({
+    verify: (req, res, buf) => {
+      req.rawBody = buf;
+    },
+  })
+);
 app.use(cookieParser());
 app.use(express.static("public"));
 
